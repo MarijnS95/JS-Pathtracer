@@ -8,25 +8,27 @@ var workStarted = 0, workFinished = 0;
 var numXchunks = 0, numYchunks = 0;
 var numFrames = 0, scale = 1;
 var isRendering = false;
+var id = null;
 
 function workerMessage(e) {
 	switch (e.data.type) {
 		case "chunkDone":
 			//console.log("Chunk %d, %d has finished", e.data.x, e.data.y);
-			ctx.putImageData(e.data.id, e.data.x * chunkWidth, e.data.y * chunkHeight);
+			//ctx.putImageData(e.data.id, e.data.x * chunkWidth, e.data.y * chunkHeight);
 			workFinished++;
 			//todo deal with passing another chunk if work has not yet finished
 			sendWork(e.srcElement);
-			//accumulator.set(e.data.acc, e.data.x * chunkWidth + e.data.y * chunkHeight * chunkWidth);
-			delete e.data.acc;
-			delete e;
+			//accumulator.set(e.data.acc, (e.data.x * chunkWidth + e.data.y * chunkHeight * ctx.canvas.width) * 3);
+			for (var i = 0; i < chunkHeight; i++){
+				accumulator.set(e.data.acc.subarray(i * chunkWidth * 3, (i + 1) * chunkWidth * 3), (e.data.x * chunkWidth + (e.data.y * chunkHeight + i) * ctx.canvas.width) * 3);
+			}
 			break;
 	}
 }
 
 function sendWork(worker) {
 	if (workStarted < 64) {
-		var x = workStarted % numXchunks,
+		var x = workStarted % numXchunks | 0,
 			y = (workStarted / numXchunks) | 0;
 		//var accChunk = accumulator.subarray(x * chunkWidth + y * chunkWidth * chunkHeight);
 		var msg = { type: "render", x: x, y: y, scale: scale };
@@ -34,9 +36,7 @@ function sendWork(worker) {
 		worker.postMessage(msg);
 	} else {
 		if (workFinished == 64) {
-			console.timeEnd("renderTime");
-			if (isRendering)
-				requestAnimationFrame(render);
+			renderFinished();
 		} else {
 			//console.log("no work in queue anymore...");
 		}
@@ -46,7 +46,6 @@ function sendWork(worker) {
 function render() {
 	workStarted = workFinished = 0;
 	console.time("renderTime");
-	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	numFrames++;
 	scale = 1 / numFrames;
 	for (var i = 0; i < workers.length; i++) {
@@ -71,8 +70,27 @@ function render() {
 			data[i + 2] = saturate(accumulator[j + 2] * scale);
 			data[i + 3] = 255;
 		}*/
-	//ctx.putImageData(id, 0, 0);
 	//requestAnimationFrame(render);
+}
+
+function sat(f) {
+	//return ()| 0;
+}
+
+function renderFinished() {
+	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+	var i = 0;
+	for (i = 0; i < ctx.canvas.width * ctx.canvas.height; i++) {
+		id.data[i * 4] = accumulator[i * 3] | 0;
+		id.data[i * 4 + 1] = accumulator[i * 3 + 1] | 0;
+		id.data[i * 4 + 2] = accumulator[i * 3 + 2] | 0;
+		id.data[i * 4 + 3] = 255;
+	}
+	//console.log(i, id.data.length, id.data);
+	ctx.putImageData(id, 0, 0);
+	if (isRendering)
+		requestAnimationFrame(render);
+	console.timeEnd("renderTime");
 }
 
 //initialize
@@ -81,13 +99,13 @@ addEventListener("load", function () {
 	ctx = document.querySelector("canvas").getContext("2d");
 	numXchunks = ctx.canvas.width / chunkWidth;
 	numYchunks = ctx.canvas.height / chunkHeight;
-	accumulator = new Float32Array(512 * 512 * 3);
+	accumulator = new Float32Array(ctx.canvas.width * ctx.canvas.height * 3);
+	id = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
 	//spawn webworkers
 	for (var i = 0; i < 8; i++) {
-		var id = ctx.createImageData(chunkWidth, chunkHeight);
 		workers.push(new Worker("ChunkRenderer.js"));
 		workers[i].onmessage = workerMessage;
-		workers[i].postMessage({ type: "setid", id: id });
+		//workers[i].postMessage({ type: "setid", id: id });
 	}
 	console.log("Created all workers");
 	//render();
