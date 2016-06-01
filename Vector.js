@@ -11,10 +11,10 @@ function dot(a, b) {
 }
 
 function mul(a, b) {
-	if (b instanceof V)
-		return new V(a.x * b.x, a.y * b.y, a.z * b.z);
-	else
+	if (typeof b === "number")
 		return new V(a.x * b, a.y * b, a.z * b);
+	else
+		return new V(a.x * b.x, a.y * b.y, a.z * b.z);
 }
 
 function normalize(v) {
@@ -59,14 +59,14 @@ V.prototype.add = function (v) {
 }
 
 V.prototype.mul = function (f) {
-	if (f instanceof V) {
-		this.x *= f.x;
-		this.y *= f.y;
-		this.z *= f.z;
-	} else {
+	if (typeof f === "number") {
 		this.x *= f;
 		this.y *= f;
 		this.z *= f;
+	} else {
+		this.x *= f.x;
+		this.y *= f.y;
+		this.z *= f.z;
 	}
 }
 

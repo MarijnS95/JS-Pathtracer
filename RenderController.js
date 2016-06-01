@@ -9,6 +9,15 @@ var numXchunks = 0, numYchunks = 0;
 var numFrames = 0, scale = 1;
 var isRendering = false;
 var id = null;
+var camera = null;
+
+var spheres = [new Sphere(new V(0, -500, 0), 249100, 0.3, 0.7), new Sphere(new V(-1, 0, 4), 0.32, 0, 1), new Sphere(new V(1, 0, 4), 0.32, 1, 0), new Sphere(new V(0, 0, 2.8), 0.32, 0, 0, 1)];//, new Sphere(new V(0, 0, 12), 0.32, 1, 0, 0)];
+spheres[0].t = true;
+spheres[2].c = new V(1, 0, 0);
+spheres[3].c = new V(0, 1, 1);
+spheres[3].rIdx = 1.5;
+
+var lights = [new Light(new V(2), new V(40))];
 
 function workerMessage(e) {
 	switch (e.data.type) {
@@ -19,7 +28,7 @@ function workerMessage(e) {
 			//todo deal with passing another chunk if work has not yet finished
 			sendWork(e.srcElement);
 			//accumulator.set(e.data.acc, (e.data.x * chunkWidth + e.data.y * chunkHeight * ctx.canvas.width) * 3);
-			for (var i = 0; i < chunkHeight; i++){
+			for (var i = 0; i < chunkHeight; i++) {
 				accumulator.set(e.data.acc.subarray(i * chunkWidth * 3, (i + 1) * chunkWidth * 3), (e.data.x * chunkWidth + (e.data.y * chunkHeight + i) * ctx.canvas.width) * 3);
 			}
 			break;
@@ -51,26 +60,6 @@ function render() {
 	for (var i = 0; i < workers.length; i++) {
 		sendWork(workers[i]);
 	}
-
-	/*
-	var scale = 1 / ++samples;
-	for (x = 0; x < 512; x++)
-		for (y = 0; y < 512; y++) {
-			var debug = (y == 255 && (x & 15) == 0) && maxDepth != 0;
-			var r = cam.getRay(x + Math.random(), y + Math.random());
-			var c = RayTrace(r, 0, debug, 1);
-			var i = (x + y * 512) * 4,
-				j = (x + y * 512) * 3;
-			accumulator[j] += c.x;
-			accumulator[j + 1] += c.y;
-			accumulator[j + 2] += c.z;
-
-			data[i] = saturate(accumulator[j] * scale);
-			data[i + 1] = saturate(accumulator[j + 1] * scale);
-			data[i + 2] = saturate(accumulator[j + 2] * scale);
-			data[i + 3] = 255;
-		}*/
-	//requestAnimationFrame(render);
 }
 
 function sat(f) {
@@ -105,8 +94,10 @@ addEventListener("load", function () {
 	for (var i = 0; i < 8; i++) {
 		workers.push(new Worker("ChunkRenderer.js"));
 		workers[i].onmessage = workerMessage;
-		//workers[i].postMessage({ type: "setid", id: id });
+		workers[i].postMessage({ type: "setSpheres", spheres: spheres });
+		workers[i].postMessage({ type: "setLights", lights: lights });
 	}
+	camera = new Camera(new V(0), new V(0, 0, 1));
 	console.log("Created all workers");
 	//render();
 });
