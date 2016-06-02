@@ -86,8 +86,8 @@ Camera.prototype.update = function () {
 	this.down.mul(2);
 	this.right.mul(2);
 	this.camScale = 1 / 512;
-	//reset();
 	for (var i = 0; i < workers.length; i++) {
 		workers[i].postMessage({ type: "setCamera", camera: this });
 	}
+	reset();
 };

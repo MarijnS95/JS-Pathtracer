@@ -5,8 +5,10 @@ function Sphere(p, r2, diff, refl = 0, refr = 0) {
 		this.diff = p.diff;
 		this.refl = p.refl;
 		this.refr = p.refr;
+		this.rIdx = p.rIdx;
 		this.t = p.t;
 		this.c = p.c;
+		this.reflCol = p.reflCol;
 	} else {
 		this.P = p;
 		this.R2 = r2;
@@ -15,6 +17,7 @@ function Sphere(p, r2, diff, refl = 0, refr = 0) {
 		this.refr = refr;
 		this.t = false;
 		this.c = new V(1);
+		this.reflCol = new V(1);
 	}
 };
 

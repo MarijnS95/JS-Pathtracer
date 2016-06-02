@@ -41,14 +41,24 @@ function neg(v) {
 	return new V(-v.x, -v.y, -v.z);
 }
 
+function abs(v) {
+	return new V(Math.abs(v.x), Math.abs(v.y), Math.abs(v.z));
+}
+
 function V(x, y, z) {
-	this.x = x;
-	this.y = y;
-	this.z = z;
-	if (y == null)
-		this.y = x;
-	if (z == null)
-		this.z = x;
+	if (x instanceof V) {
+		this.x = x.x;
+		this.y = x.y;
+		this.z = x.z;
+	} else {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		if (y == null)
+			this.y = x;
+		if (z == null)
+			this.z = x;
+	}
 	//console.log(this);
 }
 
@@ -72,4 +82,20 @@ V.prototype.mul = function (f) {
 
 V.prototype.print = function (pre = "") {
 	console.log(pre + "<" + this.x + ", " + this.y + ", " + this.z + ">");
+}
+
+function frameMul(N, v) {
+	var nabs = abs(N);
+	var t = new V(N);
+	if (nabs.x <= nabs.y && nabs.x <= nabs.z)
+		t.x = 1;
+	else if (nabs.y <= nabs.x && nabs.y <= nabs.z)
+		t.y = 1;
+	else
+		t.z = 1;
+
+	var c = cross(t, N);
+	var T = normalize(c);
+	var B = cross(T, N);
+	return add(mul(T, v.x), add(mul(B, v.y), mul(N, v.z)));
 }

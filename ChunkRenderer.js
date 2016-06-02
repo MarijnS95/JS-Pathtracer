@@ -5,7 +5,8 @@ importScripts("Shared.js", "Vector.js", "Sphere.js", "Camera.js", "Ray.js", "Lig
 var spheres = [];
 var lights = [];
 var camera = null;
-var acc = new Float32Array(chunkWidth * chunkHeight * 3);
+var skydome = null, skydomeWidth = 0, skydomeHeight = 0;
+//var acc = new Float32Array(chunkWidth * chunkHeight * 3);
 
 function intersect(r) {
 	for (var i = 0; i < spheres.length; i++)
@@ -20,9 +21,19 @@ function intersects(r) {
 	return false;
 }
 
+function SampleSkydome(dir) {
+	if (skydome == null)
+		return dir;
+	var r = INVPI * Math.acos(dir.z) / Math.sqrt(dir.x * dir.x + dir.y * dir.y);
+	var x = (dir.x * r + 1) * 0.5,
+		y = 1 - (dir.y * r + 1) * 0.5;
+	var pos = (Math.floor(x * skydomeWidth) + Math.floor(y * skydomeHeight) * skydomeWidth) * 4;
+	return new V(skydome[pos], skydome[pos + 1], skydome[pos + 2]);
+}
+
 function RayTrace(r, depth, n1) {
 	var color = new V(0);
-	if (depth > camera.maxDepth) return color;
+	if (depth > 8) return color;
 	intersect(r);
 	if (r.i != null) {
 		var col = r.i.t ? new V(((Math.floor(r.I.x * 64 + 2000) & 63) == 0 || (Math.floor(r.I.z * 64 + 2000) & 63) == 0) ? .05 : .2) : r.i.c;
@@ -69,15 +80,19 @@ function RayTrace(r, depth, n1) {
 			}
 		}
 		if (r.i.refl > 0 || Fr > 0)
-			color.add(mul(mul(col, r.i.refl + Fr), RayTrace(new Ray(reflect(r.D, r.N), r.I), depth + 1, n1)));
+			color.add(mul(mul(r.i.reflCol, r.i.refl + Fr), RayTrace(new Ray(reflect(r.D, r.N), r.I), depth + 1, n1)));
 		//skydome AO sampling
-
-	}/* else
-		color.add(SampleSkydome(r.D));*/
+		if (r.i.diff > 0) {
+			var skyRay = new Ray(frameMul(r.N, cosineHemSample()), r.I);
+			if (!intersects(skyRay))
+				color.add(mul(SampleSkydome(skyRay.D), mul(col, r.i.diff)));
+		}
+	} else
+		color.add(SampleSkydome(r.D));
 	return color;
 }
 
-function renderChunk(x, y) {
+function renderChunk(x, y, acc) {
 	//http://stackoverflow.com/a/31265419/2844473
 	//my plans exactly
 	for (var xc = 0; xc < chunkWidth; xc++)
@@ -85,18 +100,17 @@ function renderChunk(x, y) {
 			var base = (xc + yc * chunkWidth) * 3;
 			var r = camera.getRay(x * chunkWidth + xc + Math.random(), y * chunkHeight + yc + Math.random());
 			var c = RayTrace(r, 1, 1);
-			acc[base] = c.x * 255;//x * chunkWidth + xc;
-			acc[base + 1] = c.y * 255;// * chunkWidth + yc;
-			acc[base + 2] = c.z * 255;
+			acc[base] += c.x;//x * chunkWidth + xc;
+			acc[base + 1] += c.y;// * chunkWidth + yc;
+			acc[base + 2] += c.z;
 		}
 }
 
 addEventListener("message", function (e) {
-	//todo
 	switch (e.data.type) {
 		case "render":
-			renderChunk(e.data.x, e.data.y);
-			postMessage({ type: "chunkDone", x: e.data.x, y: e.data.y, acc: acc });
+			renderChunk(e.data.x, e.data.y, e.data.acc);
+			postMessage({ type: "chunkDone", x: e.data.x, y: e.data.y, acc: e.data.acc });
 			break;
 		case "setSpheres":
 			for (var i = 0; i < e.data.spheres.length; i++)
@@ -104,11 +118,14 @@ addEventListener("message", function (e) {
 			break;
 		case "setLights":
 			lights = e.data.lights;
-			console.log(lights);
 			break;
 		case "setCamera":
 			camera = new Camera(e.data.camera);
-			//console.log("Received a camera:", camera);
+			break;
+		case "setSkydome":
+			skydome = e.data.skydome;
+			skydomeWidth = e.data.skydomeWidth;
+			skydomeHeight = e.data.skydomeHeight;
 			break;
 	}
 });

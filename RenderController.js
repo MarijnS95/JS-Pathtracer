@@ -6,7 +6,7 @@ var workers = [];
 var accumulator = null;
 var workStarted = 0, workFinished = 0;
 var numXchunks = 0, numYchunks = 0;
-var numFrames = 0, scale = 1;
+var numSamples = 0, scale = 1;
 var isRendering = false;
 var id = null;
 var camera = null;
@@ -17,7 +17,7 @@ spheres[2].c = new V(1, 0, 0);
 spheres[3].c = new V(0, 1, 1);
 spheres[3].rIdx = 1.5;
 
-var lights = [new Light(new V(2), new V(40))];
+var lights = [];//[new Light(new V(2), new V(40))];
 
 function workerMessage(e) {
 	switch (e.data.type) {
@@ -35,12 +35,17 @@ function workerMessage(e) {
 	}
 }
 
+var tempArr = new Float32Array(chunkWidth * chunkHeight * 3);
+
 function sendWork(worker) {
 	if (workStarted < 64) {
 		var x = workStarted % numXchunks | 0,
 			y = (workStarted / numXchunks) | 0;
-		//var accChunk = accumulator.subarray(x * chunkWidth + y * chunkWidth * chunkHeight);
-		var msg = { type: "render", x: x, y: y, scale: scale };
+		for (var i = 0; i < chunkHeight; i++) {
+			var base = (x * chunkWidth + (y * chunkHeight + i) * ctx.canvas.width) * 3;
+			tempArr.set(accumulator.subarray(base, base + chunkWidth * 3), i * chunkWidth * 3);
+		}
+		var msg = { type: "render", x: x, y: y, acc: tempArr };
 		workStarted++;
 		worker.postMessage(msg);
 	} else {
@@ -55,24 +60,25 @@ function sendWork(worker) {
 function render() {
 	workStarted = workFinished = 0;
 	console.time("renderTime");
-	numFrames++;
-	scale = 1 / numFrames;
+	numSamples++;
+	scale = 1 / numSamples;
 	for (var i = 0; i < workers.length; i++) {
 		sendWork(workers[i]);
 	}
 }
 
 function sat(f) {
-	//return ()| 0;
+	f *= scale;
+	return (f > 1 ? 1 : (f < 0 ? 0 : Math.sqrt(f))) * 255;
 }
 
 function renderFinished() {
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	var i = 0;
 	for (i = 0; i < ctx.canvas.width * ctx.canvas.height; i++) {
-		id.data[i * 4] = accumulator[i * 3] | 0;
-		id.data[i * 4 + 1] = accumulator[i * 3 + 1] | 0;
-		id.data[i * 4 + 2] = accumulator[i * 3 + 2] | 0;
+		id.data[i * 4] = sat(accumulator[i * 3]);
+		id.data[i * 4 + 1] = sat(accumulator[i * 3 + 1]);
+		id.data[i * 4 + 2] = sat(accumulator[i * 3 + 2]);
 		id.data[i * 4 + 3] = 255;
 	}
 	//console.log(i, id.data.length, id.data);
@@ -84,6 +90,7 @@ function renderFinished() {
 
 //initialize
 addEventListener("load", function () {
+	loadSkydome();
 	//todo: load skydome, start renderer
 	ctx = document.querySelector("canvas").getContext("2d");
 	numXchunks = ctx.canvas.width / chunkWidth;
@@ -109,3 +116,33 @@ addEventListener("keypress", function (e) {
 			render();
 	}
 });
+
+function reset() {
+	for (var i = 0; i < accumulator.length; i++)
+		accumulator[i] = 0;
+	numSamples = 0;
+}
+
+var skydomeWidth = 0, skydomeHeight = 0;
+
+function loadSkydome() {
+	var skydomeRequest = new XMLHttpRequest();
+	skydomeRequest.open("GET", "Assets/uffizi_probe.float4"); //"https://dl.dropboxusercontent.com/u/86176287/graphics/js_cpu_fun/Assets/uffizi_probe.float4"
+	skydomeRequest.responseType = "arraybuffer";
+	skydomeRequest.onreadystatechange = function () {
+		console.log("skydome readystate change", skydomeRequest.readyState, skydomeRequest.status, skydomeRequest.statusText);
+		if (skydomeRequest.readyState === 4) {// && skydomeRequest.status == 200
+			//chrome needs to be started with --allow-file-access-from-files, and it'll have a statuscode of 0 when finishing
+			var dv = new DataView(skydomeRequest.response);
+			skydomeWidth = dv.getInt32(0, true);
+			skydomeHeight = dv.getInt32(4, true);
+			skydome = new Float32Array(skydomeRequest.response, 8, dv.byteLength / 4 - 2);
+			console.log("Skydome ready!", skydomeWidth, skydomeHeight, skydome);
+			for (var i = 0; i < workers.length; i++) {
+				workers[i].postMessage({ type: "setSkydome", skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });
+			}
+			reset();
+		}
+	}
+	skydomeRequest.send();
+}
