@@ -6,7 +6,7 @@ var spheres = [];
 var lights = [];
 var camera = null;
 var skydome = null, skydomeWidth = 0, skydomeHeight = 0;
-//var acc = new Float32Array(chunkWidth * chunkHeight * 3);
+var accumulator = null;
 
 function intersect(r) {
 	for (var i = 0; i < spheres.length; i++)
@@ -92,25 +92,28 @@ function RayTrace(r, depth, n1) {
 	return color;
 }
 
-function renderChunk(x, y, acc) {
+function renderChunk(x, y) {
 	//http://stackoverflow.com/a/31265419/2844473
 	//my plans exactly
+
+	// NEW INF! ALMOST: https://bugs.chromium.org/p/chromium/issues/detail?id=563816
 	for (var xc = 0; xc < chunkWidth; xc++)
 		for (var yc = 0; yc < chunkHeight; yc++) {
-			var base = (xc + yc * chunkWidth) * 3;
+			//var base = (xc + yc * chunkWidth) * 3;
+			var base = 3 * (x * chunkWidth + xc + (8 * chunkWidth) * (y * chunkHeight + yc));
 			var r = camera.getRay(x * chunkWidth + xc + Math.random(), y * chunkHeight + yc + Math.random());
 			var c = RayTrace(r, 1, 1);
-			acc[base] += c.x;//x * chunkWidth + xc;
-			acc[base + 1] += c.y;// * chunkWidth + yc;
-			acc[base + 2] += c.z;
+			accumulator[base] += c.x;//x * chunkWidth + xc;
+			accumulator[base + 1] += c.y;// * chunkWidth + yc;
+			accumulator[base + 2] += c.z;
 		}
 }
 
 addEventListener("message", function (e) {
 	switch (e.data.type) {
 		case "render":
-			renderChunk(e.data.x, e.data.y, e.data.acc);
-			postMessage({ type: "chunkDone", x: e.data.x, y: e.data.y, acc: e.data.acc });
+			renderChunk(e.data.x, e.data.y);
+			postMessage({ type: "chunkDone", x: e.data.x, y: e.data.y });
 			break;
 		case "setSpheres":
 			for (var i = 0; i < e.data.spheres.length; i++)
@@ -126,6 +129,10 @@ addEventListener("message", function (e) {
 			skydome = e.data.skydome;
 			skydomeWidth = e.data.skydomeWidth;
 			skydomeHeight = e.data.skydomeHeight;
+			break;
+		case "setAccumulator":
+			//Create a view:
+			accumulator = e.data.accumulator;
 			break;
 	}
 });
