@@ -4,13 +4,11 @@
 var ctx = null;
 var workers = [];
 var accumulator = null;
-var accumulatorView = null;
-var workStarted = 0, workFinished = 0;
-var numXchunks = 0, numYchunks = 0;
 var numSamples = 0, scale = 1;
 var isRendering = false;
 var id = null;
 var camera = null;
+var syncPoint = null;
 
 var spheres = [new Sphere(new V(0, -500, 0), 249100, 0.3, 0.7), new Sphere(new V(-1, 0, 4), 0.32, 0, 1), new Sphere(new V(1, 0, 4), 0.32, 1, 0), new Sphere(new V(0, 0, 2.8), 0.32, 0, 0, 1)];//, new Sphere(new V(0, 0, 12), 0.32, 1, 0, 0)];
 spheres[0].t = true;
@@ -22,39 +20,20 @@ var lights = [];//[new Light(new V(2), new V(40))];
 
 function workerMessage(e) {
 	switch (e.data.type) {
-		case "chunkDone":
-			//console.log("Chunk %d, %d has finished", e.data.x, e.data.y);
-			//ctx.putImageData(e.data.id, e.data.x * chunkWidth, e.data.y * chunkHeight);
-			workFinished++;
-			//todo deal with passing another chunk if work has not yet finished
-			sendWork(e.srcElement);
+		case "renderDone":
+			renderFinished();
 			break;
 	}
 }
 
-function sendWork(worker) {
-	if (workStarted < 64) {
-		var x = workStarted % numXchunks | 0,
-			y = (workStarted / numXchunks) | 0;
-		var msg = { type: "render", x: x, y: y };
-		workStarted++;
-		worker.postMessage(msg);
-	} else {
-		if (workFinished == 64) {
-			renderFinished();
-		} else {
-			//console.log("no work in queue anymore...");
-		}
-	}
-}
-
 function render() {
-	workStarted = workFinished = 0;
 	console.time("renderTime");
 	numSamples++;
 	scale = 1 / numSamples;
+	syncPoint.fill(0);
+	var xch = ctx.canvas.width / chunkWidth;
 	for (var i = 0; i < workers.length; i++)
-		sendWork(workers[i]);
+		workers[i].postMessage({ type: "startRender", xChunks: xch, totalWork: xch * (ctx.canvas.height / chunkHeight), stride: ctx.canvas.width });
 }
 
 function sat(f) {
@@ -66,12 +45,11 @@ function renderFinished() {
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	var i = 0;
 	for (i = 0; i < ctx.canvas.width * ctx.canvas.height; i++) {
-		id.data[i * 4] = sat(accumulatorView[i * 3]);
-		id.data[i * 4 + 1] = sat(accumulatorView[i * 3 + 1]);
-		id.data[i * 4 + 2] = sat(accumulatorView[i * 3 + 2]);
+		id.data[i * 4] = sat(accumulator[i * 3]);
+		id.data[i * 4 + 1] = sat(accumulator[i * 3 + 1]);
+		id.data[i * 4 + 2] = sat(accumulator[i * 3 + 2]);
 		id.data[i * 4 + 3] = 255;
 	}
-	//console.log(i, id.data.length, id.data);
 	ctx.putImageData(id, 0, 0);
 	if (isRendering)
 		requestAnimationFrame(render);
@@ -83,10 +61,8 @@ addEventListener("load", function () {
 	loadSkydome();
 	//todo: load skydome, start renderer
 	ctx = document.querySelector("canvas").getContext("2d");
-	numXchunks = ctx.canvas.width / chunkWidth;
-	numYchunks = ctx.canvas.height / chunkHeight;
-	accumulator = new SharedArrayBuffer(ctx.canvas.width * ctx.canvas.height * 3 * 4);
-	accumulatorView = new Float32Array(accumulator);
+	accumulator = new Float32Array(new SharedArrayBuffer(ctx.canvas.width * ctx.canvas.height * 3 * 4));
+	syncPoint = new Uint32Array(new SharedArrayBuffer(Uint32Array.BYTES_PER_ELEMENT * 2));
 	id = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
 	//spawn webworkers
 	for (var i = 0; i < 8; i++) {
@@ -94,7 +70,8 @@ addEventListener("load", function () {
 		workers[i].onmessage = workerMessage;
 		workers[i].postMessage({ type: "setSpheres", spheres: spheres });
 		workers[i].postMessage({ type: "setLights", lights: lights });
-		workers[i].postMessage({ type: "setAccumulator", accumulator: accumulatorView });
+		workers[i].postMessage({ type: "setAccumulator", accumulator: accumulator });
+		workers[i].postMessage({ type: "setSyncPoint", syncPoint: syncPoint });
 	}
 	camera = new Camera(new V(0), new V(0, 0, 1));
 	console.log("Created all workers");
@@ -110,8 +87,7 @@ addEventListener("keypress", function (e) {
 });
 
 function reset() {
-	for (var i = 0; i < accumulatorView.length; i++)
-		accumulatorView[i] = 0;
+	accumulator.fill(0);
 	numSamples = 0;
 }
 
@@ -122,7 +98,14 @@ function loadSkydome() {
 		var dv = new DataView(ab);
 		skydomeWidth = dv.getInt32(0, true);
 		skydomeHeight = dv.getInt32(4, true);
-		skydome = new Float32Array(ab, 8, dv.byteLength / 4 - 2);
+		var skydomeView = new Float32Array(ab, 8, dv.byteLength / 4 - 2);
+		// Only want the skydome in memory once, shared for all threads.
+		var sab = new SharedArrayBuffer(skydomeView.byteLength);
+		skydome = new Float32Array(sab);
+		//skydomeView.transfer(skydome);
+		for (var i = 0; i < skydomeView.length; i++)
+			skydome[i] = skydomeView[i];
+		delete skydomeView, dv, ab;
 		console.log("Skydome ready!", skydomeWidth, skydomeHeight, skydome);
 		for (var i = 0; i < workers.length; i++)
 			workers[i].postMessage({ type: "setSkydome", skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });

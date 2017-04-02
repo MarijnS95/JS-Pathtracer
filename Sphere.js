@@ -51,10 +51,6 @@ Sphere.prototype.intersect = function (r) {
 	}
 };
 
-Sphere.prototype.getHexColor = function () {
-	return "#" + dec2hex(this.c.x * 255) + dec2hex(this.c.y * 255) + dec2hex(this.c.z * 255);
-};
-
 Sphere.prototype.intersects = function (r) {
 	var L = sub(this.P, r.O);
 	var l = dot(L, r.D);

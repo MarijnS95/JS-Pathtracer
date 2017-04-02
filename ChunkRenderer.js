@@ -1,4 +1,4 @@
-//initialize 
+//initialize
 importScripts("Shared.js", "Vector.js", "Sphere.js", "Camera.js", "Ray.js", "Light.js");
 
 //script running in a web worker
@@ -7,6 +7,14 @@ var lights = [];
 var camera = null;
 var skydome = null, skydomeWidth = 0, skydomeHeight = 0;
 var accumulator = null;
+var syncPoint = null;
+
+function cosineHemSample() {
+	var phi = Math.PI * 2 * Math.random();
+	var v = Math.random();
+	var cosTheta = Math.sqrt(v), sinTheta = Math.sqrt(1 - v);
+	return new V(Math.cos(phi) * sinTheta, Math.sin(phi) * sinTheta, cosTheta);
+}
 
 function intersect(r) {
 	for (var i = 0; i < spheres.length; i++)
@@ -92,28 +100,33 @@ function RayTrace(r, depth, n1) {
 	return color;
 }
 
-function renderChunk(x, y) {
+function renderChunk(x, y, stride) {
 	//http://stackoverflow.com/a/31265419/2844473
 	//my plans exactly
 
 	// NEW INF! ALMOST: https://bugs.chromium.org/p/chromium/issues/detail?id=563816
 	for (var xc = 0; xc < chunkWidth; xc++)
 		for (var yc = 0; yc < chunkHeight; yc++) {
-			//var base = (xc + yc * chunkWidth) * 3;
-			var base = 3 * (x * chunkWidth + xc + (8 * chunkWidth) * (y * chunkHeight + yc));
+			var base = 3 * (x * chunkWidth + xc + stride * (y * chunkHeight + yc));
 			var r = camera.getRay(x * chunkWidth + xc + Math.random(), y * chunkHeight + yc + Math.random());
 			var c = RayTrace(r, 1, 1);
-			accumulator[base] += c.x;//x * chunkWidth + xc;
-			accumulator[base + 1] += c.y;// * chunkWidth + yc;
+			accumulator[base] += c.x;
+			accumulator[base + 1] += c.y;
 			accumulator[base + 2] += c.z;
 		}
 }
 
 addEventListener("message", function (e) {
 	switch (e.data.type) {
-		case "render":
-			renderChunk(e.data.x, e.data.y);
-			postMessage({ type: "chunkDone", x: e.data.x, y: e.data.y });
+		case "startRender":
+			while ((chunkIdx = Atomics.add(syncPoint, 0, 1)) < e.data.totalWork) {
+				var x = chunkIdx % e.data.xChunks | 0,
+					y = (chunkIdx / e.data.xChunks) | 0;
+				renderChunk(x, y, e.data.stride);
+				var chunksDone = Atomics.add(syncPoint, 1, 1);
+				if (chunksDone == e.data.totalWork - 1)
+					postMessage({ type: "renderDone" });
+			}
 			break;
 		case "setSpheres":
 			for (var i = 0; i < e.data.spheres.length; i++)
@@ -133,6 +146,9 @@ addEventListener("message", function (e) {
 		case "setAccumulator":
 			//Create a view:
 			accumulator = e.data.accumulator;
+			break;
+		case "setSyncPoint":
+			syncPoint = e.data.syncPoint;
 			break;
 	}
 });
