@@ -11,10 +11,10 @@ function dot(a, b) {
 }
 
 function mul(a, b) {
-	if (typeof b === "number")
-		return new V(a.x * b, a.y * b, a.z * b);
-	else
+	if (b instanceof V)
 		return new V(a.x * b.x, a.y * b.y, a.z * b.z);
+	else
+		return new V(a.x * b, a.y * b, a.z * b);
 }
 
 function normalize(v) {
@@ -46,11 +46,7 @@ function abs(v) {
 }
 
 function V(x, y, z) {
-	if (x instanceof V) {
-		this.x = x.x;
-		this.y = x.y;
-		this.z = x.z;
-	} else {
+	if (typeof x === "number") {
 		this.x = x;
 		this.y = y;
 		this.z = z;
@@ -58,26 +54,51 @@ function V(x, y, z) {
 			this.y = x;
 		if (z == null)
 			this.z = x;
+	} else {
+		this.x = x.x;
+		this.y = x.y;
+		this.z = x.z;
 	}
 	//console.log(this);
 }
 
 V.prototype.add = function (v) {
-	this.x += v.x;
-	this.y += v.y;
-	this.z += v.z;
+	if (v instanceof V) {
+		this.x += v.x;
+		this.y += v.y;
+		this.z += v.z;
+	} else {
+		this.x += v;
+		this.y += v;
+		this.z += v;
+	}
+	return this;
 }
 
-V.prototype.mul = function (f) {
-	if (typeof f === "number") {
-		this.x *= f;
-		this.y *= f;
-		this.z *= f;
+V.prototype.mul = function (v) {
+	if (v instanceof V) {
+		this.x *= v.x;
+		this.y *= v.y;
+		this.z *= v.z;
 	} else {
-		this.x *= f.x;
-		this.y *= f.y;
-		this.z *= f.z;
+		this.x *= v;
+		this.y *= v;
+		this.z *= v;
 	}
+	return this;
+}
+
+V.prototype.set = function (x, y, z) {
+	this.x = x;
+	if (y == null)
+		this.y = x;
+	else
+		this.y = y;
+	if (z == null)
+		this.z = x;
+	else
+		this.z = z;
+	return this;
 }
 
 V.prototype.print = function (pre = "") {

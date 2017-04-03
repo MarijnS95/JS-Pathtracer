@@ -10,10 +10,23 @@ var id = null;
 var camera = null;
 var syncPoint = null;
 
-var spheres = [new Sphere(new V(0, -500, 0), 249100, 0.3, 0.7), new Sphere(new V(-1, 0, 4), 0.32, 0, 1), new Sphere(new V(1, 0, 4), 0.32, 1, 0), new Sphere(new V(0, 0, 2.8), 0.32, 0, 0, 1)];//, new Sphere(new V(0, 0, 12), 0.32, 1, 0, 0)];
+var spheres = [
+	new Sphere(new V(0, -10000, 0), 9999 * 9999, 0.4, 0.15),
+	new Sphere(new V(-1, 0, 4), 0.32, 0, 1),
+	new Sphere(new V(1, 0, 4), 0.32, 1, 0),
+	new Sphere(new V(0, 0, 2.8), 0.32, 0, 0, 1)
+];
+
+//, new Sphere(new V(0, 0, 12), 0.32, 1, 0, 0)];
 spheres[0].t = true;
-spheres[2].c = new V(1, 0, 0);
-spheres[3].c = new V(0, 1, 1);
+spheres[0].gloss = 0.0001;
+spheres[0].diffCol = new V(0.7);
+spheres[0].specCol = new V(0.7);
+
+spheres[2].diffCol = new V(1, 0, 0);
+
+spheres[3].diffCol = new V(1);
+spheres[3].absCol = new V(.2, .93, .93).mul(2.5);
 spheres[3].rIdx = 1.5;
 
 var lights = [];//[new Light(new V(2), new V(40))];
@@ -33,9 +46,8 @@ function render() {
 	syncPoint.fill(0);
 	var xch = ctx.canvas.width / chunkWidth;
 	for (var i = 0; i < workers.length; i++)
-		workers[i].postMessage({ type: "startRender", xChunks: xch, totalWork: xch * (ctx.canvas.height / chunkHeight), stride: ctx.canvas.width });
+		workers[i].postMessage({ type: "startRender", xChunks: xch, totalWork: xch * (ctx.canvas.height / chunkHeight), stride: ctx.canvas.width, rnd: numSamples * Math.random() * 0x7fff * 154323451 >>> 0 });
 }
-
 function sat(f) {
 	f *= scale;
 	return (f > 1 ? 1 : (f < 0 ? 0 : Math.sqrt(f))) * 255;

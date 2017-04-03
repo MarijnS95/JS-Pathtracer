@@ -9,26 +9,6 @@ var skydome = null, skydomeWidth = 0, skydomeHeight = 0;
 var accumulator = null;
 var syncPoint = null;
 
-function cosineHemSample() {
-	var phi = Math.PI * 2 * Math.random();
-	var v = Math.random();
-	var cosTheta = Math.sqrt(v), sinTheta = Math.sqrt(1 - v);
-	return new V(Math.cos(phi) * sinTheta, Math.sin(phi) * sinTheta, cosTheta);
-}
-
-function intersect(r) {
-	for (var i = 0; i < spheres.length; i++)
-		spheres[i].intersect(r);
-}
-
-function intersects(r) {
-	for (var i = 0; i < spheres.length; i++) {
-		if (spheres[i].intersects(r))
-			return true;
-	}
-	return false;
-}
-
 function SampleSkydome(dir) {
 	if (skydome == null)
 		return dir;
@@ -39,35 +19,33 @@ function SampleSkydome(dir) {
 	return new V(skydome[pos], skydome[pos + 1], skydome[pos + 2]);
 }
 
-function RayTrace(r, depth, n1) {
-	var color = new V(0);
-	if (depth > 8) return color;
-	intersect(r);
-	if (r.i != null) {
-		var col = r.i.t ? new V(((Math.floor(r.I.x * 64 + 2000) & 63) == 0 || (Math.floor(r.I.z * 64 + 2000) & 63) == 0) ? .05 : .2) : r.i.c;
-		if (camera.maxDepth == 0)
-			return col;
-		for (var i = 0; i < lights.length; i++) {
-			var currentLight = lights[i];
-			var LR = sub(currentLight.position, r.I);
-			var d = dot(LR, r.N);
-			if (!r.inside && d > 0) {
-				var len = length(LR);
-				var L = mul(LR, 1 / len);
-				var d = dot(L, r.N);
-				var lRay = new Ray(L, r.I);
-				if (!intersects(lRay)) {
-					if (d > 0 && r.i.diff > 0)
-						color.add(mul(mul(col, currentLight.emission), 2 * d * r.i.diff / (len * len)));
-					d = dot(L, r.N);
-					if (d > 0 && r.i.refl > 0)
-						color.add(new V(2 * Math.pow(d, 64) * r.i.refl));
-				}
-			}
+function RayTrace(r) {
+	var color = new V(1);
+	var n1 = 1.0;
+	for (var depth = 0; ; depth++) {
+		if (depth >= camera.maxDepth)
+			return new V(0);
+		intersect(r);
+		if (r.i == null) {
+			color.mul(SampleSkydome(r.D));
+			break;
 		}
 
-		var Fr = 0;
-		if (r.i.refr > 0) {
+		var col = new V(r.i.diffCol);
+		if (r.i.t) {
+			var bla = ((Math.floor(r.I.x * 16 + 2000) & 31) == 0 || (Math.floor(r.I.z * 16 + 2000) & 31) == 0) ? .05 : .4;
+			color.mul(bla);
+			col.mul(bla);
+		}
+
+		if (camera.maxDepth == 0) //TODO
+			return col;
+
+		var selector = xor32();
+		var cmp = r.i.refr;
+		var R = null;
+
+		if (cmp > selector) {
 			var cosI = -dot(r.N, r.D);
 			var sinI2 = 1 - cosI * cosI;
 			var n2 = r.Inside ? 1 : r.i.rIdx;
@@ -75,41 +53,40 @@ function RayTrace(r, depth, n1) {
 			var cosT2 = 1 - n * n * sinI2;
 			var R0 = (n1 - n2) / (n1 + n2);
 			R0 *= R0;
-			Fr = R0 + (1 - R0) * Math.pow(1 - cosI, 5);
-			if (cosT2 > 0 && Fr < 1) {
-				var T = add(mul(r.D, n), mul(r.N, n * cosI - Math.sqrt(cosT2)));
-				var refractRay = new Ray(T, r.I);
-				var refractColor = RayTrace(refractRay, depth + 1, n2);
-				if (r.Inside)
-					refractColor.mul(exp(mul(sub(new V(1), col), 2.5 * -r.t)));
-				else
-					refractColor.mul(col);
-				color.add(mul(refractColor, (1 - Fr) * r.i.refr));
+			var Fr = R0 + (1 - R0) * Math.pow(1 - cosI, 5);
+			if (cosT2 > 0 && Fr < xor32()) {
+				R = mul(r.D, n).add(mul(r.N, n * cosI - Math.sqrt(cosT2)));
+				n1 = n2;
+				color.mul(r.Inside ? exp(mul(r.i.absCol, -r.t)) : col);
+			} else {
+				R = reflect(r.D, r.N);
+				color.mul(r.i.specCol);
 			}
+		} else if ((cmp += r.i.spec) > selector) {
+			R = frameMul(reflect(r.D, r.N), cosineHemSample(r.i.gloss));
+			color.mul(r.i.specCol);
+		} else if ((cmp += r.i.diff) > selector) {
+			R = frameMul(r.N, cosineHemSample(xor32()));
+			color.mul(col);
+		} else {
+			color.set(0);
+			break;
 		}
-		if (r.i.refl > 0 || Fr > 0)
-			color.add(mul(mul(r.i.reflCol, r.i.refl + Fr), RayTrace(new Ray(reflect(r.D, r.N), r.I), depth + 1, n1)));
-		//skydome AO sampling
-		if (r.i.diff > 0) {
-			var skyRay = new Ray(frameMul(r.N, cosineHemSample()), r.I);
-			if (!intersects(skyRay))
-				color.add(mul(SampleSkydome(skyRay.D), mul(col, r.i.diff)));
-		}
-	} else
-		color.add(SampleSkydome(r.D));
+		r.nextRay(normalize(R));
+	}
 	return color;
 }
 
 function renderChunk(x, y, stride) {
-	//http://stackoverflow.com/a/31265419/2844473
+	//http://stackoverflow1om/a/31265419/2844473
 	//my plans exactly
 
 	// NEW INF! ALMOST: https://bugs.chromium.org/p/chromium/issues/detail?id=563816
 	for (var xc = 0; xc < chunkWidth; xc++)
 		for (var yc = 0; yc < chunkHeight; yc++) {
 			var base = 3 * (x * chunkWidth + xc + stride * (y * chunkHeight + yc));
-			var r = camera.getRay(x * chunkWidth + xc + Math.random(), y * chunkHeight + yc + Math.random());
-			var c = RayTrace(r, 1, 1);
+			var r = camera.getRay(x * chunkWidth + xc, y * chunkHeight + yc);
+			var c = RayTrace(r);
 			accumulator[base] += c.x;
 			accumulator[base + 1] += c.y;
 			accumulator[base + 2] += c.z;
@@ -119,6 +96,7 @@ function renderChunk(x, y, stride) {
 addEventListener("message", function (e) {
 	switch (e.data.type) {
 		case "startRender":
+			seed = (e.data.rnd + 1/*threadidx*/) * 124737421 | 0;
 			while ((chunkIdx = Atomics.add(syncPoint, 0, 1)) < e.data.totalWork) {
 				var x = chunkIdx % e.data.xChunks | 0,
 					y = (chunkIdx / e.data.xChunks) | 0;

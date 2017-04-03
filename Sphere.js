@@ -1,23 +1,27 @@
-function Sphere(p, r2, diff, refl = 0, refr = 0) {
-	if (diff == null) {
-		this.P = p.P;
+function Sphere(p, r2, diff, spec = 0, refr = 0) {
+	if (r2 == null) {
+		this.P = new V(p.P);
 		this.R2 = p.R2;
 		this.diff = p.diff;
-		this.refl = p.refl;
+		this.spec = p.spec;
 		this.refr = p.refr;
+		this.gloss = p.gloss;
 		this.rIdx = p.rIdx;
 		this.t = p.t;
-		this.c = p.c;
-		this.reflCol = p.reflCol;
+		this.diffCol = new V(p.diffCol);
+		this.specCol = new V(p.specCol);
+		this.absCol = new V(p.absCol);
 	} else {
 		this.P = p;
 		this.R2 = r2;
 		this.diff = diff;
-		this.refl = refl;
+		this.spec = spec;
 		this.refr = refr;
+		this.gloss = 0;
 		this.t = false;
-		this.c = new V(1);
-		this.reflCol = new V(1);
+		this.diffCol = new V(0);
+		this.specCol = new V(1);
+		this.absCol = new V(1); //TODO
 	}
 };
 
