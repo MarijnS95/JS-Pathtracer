@@ -140,5 +140,5 @@ function frameMul(N, v) {
 
 	const T = cross(t, N).normalize();
 	const B = cross(T, N);
-	return T.mul(v.x).add(B.mul(v.y)).add(N.mul(v.z));
+	return T.mul(v.x).add(B.mul(v.y)).add(mul(N, v.z));
 }

@@ -12,24 +12,29 @@ let syncPoint = null;
 let renderStartTime = 0;
 let avgFps = 0;
 
+const floor = new Material(0.4, 0.6);
+floor.tiled = true;
+floor.gloss = 0.0001;
+floor.diffCol = new V(0.7);
+floor.specCol = new V(0.7);
+
+const redDiffuse = new Material(1);
+redDiffuse.diffCol = new V(1, 0, 0);
+
+const redTransparent = new Material(0, 0, 1);
+redTransparent.diffCol = new V(1);
+redTransparent.absCol = new V(.2, .93, .93).mul(2.5);
+redTransparent.rIdx = 1.5;
+
+
 const objects = [
-	new Sphere(new V(0, -10000, 0), 9999 * 9999, 0.4, 0.15),
-	new Sphere(new V(-1, 0, 4), 0.32, 0, 1),
-	new Sphere(new V(1, 0, 4), 0.32, 1, 0),
-	new Sphere(new V(0, 0, 2.8), 0.32, 0, 0, 1)
+	new Plane(-1, new V(0, 1, 0), floor),
+	new Sphere(new V(-1, 0, 4), 0.32, new Material(0, 1)),
+	new Sphere(new V(1, 0, 4), 0.32, redDiffuse),
+	new Sphere(new V(0, 0, 2.8), 0.32, redTransparent)
 ];
 
 //, new Sphere(new V(0, 0, 12), 0.32, 1, 0, 0)];
-objects[0].t = true;
-objects[0].gloss = 0.0001;
-objects[0].diffCol = new V(0.7);
-objects[0].specCol = new V(0.7);
-
-objects[2].diffCol = new V(1, 0, 0);
-
-objects[3].diffCol = new V(1);
-objects[3].absCol = new V(.2, .93, .93).mul(2.5);
-objects[3].rIdx = 1.5;
 
 const lights = [];//[new Light(new V(2), new V(40))];
 
@@ -78,6 +83,10 @@ addEventListener("load", function () {
 	accumulator = new Float32Array(new SharedArrayBuffer(ctx.canvas.width * ctx.canvas.height * 3 * 4));
 	syncPoint = new Uint32Array(new SharedArrayBuffer(Uint32Array.BYTES_PER_ELEMENT * 2));
 	imageData = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
+
+	for (let obj of objects)
+		obj.type = obj.constructor.name;
+
 	console.log('Spawning', navigator.hardwareConcurrency, 'worker threads.');
 	for (let i = 0; i < navigator.hardwareConcurrency; i++) {
 		worker = new Worker("ChunkRenderer.js");
@@ -110,14 +119,16 @@ function reset() {
 let skydomeWidth = 0, skydomeHeight = 0;
 
 function loadSkydome() {
-	fetch("Assets/uffizi_probe.float4").then(r => r.arrayBuffer().then(ab => {
-		const dv = new DataView(ab);
-		skydomeWidth = dv.getInt32(0, true);
-		skydomeHeight = dv.getInt32(4, true);
-		skydome = new Float32Array(ab, 8, dv.byteLength / 4 - 2);
-		console.log("Skydome ready!", skydomeWidth, skydomeHeight, skydome);
-		for (let worker of workers)
-			worker.postMessage({ type: "setSkydome", skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });
-		reset();
-	}));
+	fetch("Assets/uffizi_probe.float4")
+		.then(r => r.arrayBuffer())
+		.then(ab => {
+			const dv = new DataView(ab);
+			skydomeWidth = dv.getInt32(0, true);
+			skydomeHeight = dv.getInt32(4, true);
+			skydome = new Float32Array(ab, 8, dv.byteLength / 4 - 2);
+			console.log("Skydome ready!", skydomeWidth, skydomeHeight, skydome);
+			for (let worker of workers)
+				worker.postMessage({ type: "setSkydome", skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });
+			reset();
+		});
 }

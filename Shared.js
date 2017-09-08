@@ -1,6 +1,7 @@
 //file containing important global variables and scripts
-const chunkWidth = 16, chunkHeight = 16;
+const chunkWidth = 8, chunkHeight = 8;
 const INVPI = 1 / Math.PI;
+const EPSILON = 1e-5
 
 let seed = 0;
 

@@ -1,5 +1,5 @@
 //initialize
-importScripts("Shared.js", "Vector.js", "Sphere.js", "Camera.js", "Ray.js", "Light.js");
+importScripts("Shared.js", "Vector.js", "Material.js", "Sphere.js", "Plane.js", "Camera.js", "Ray.js", "Light.js");
 
 //script running in a web worker
 let objects = [];
@@ -31,22 +31,24 @@ function RayTrace(r) {
 			break;
 		}
 
-		if (r.i.t) {
+		const mtl = r.i.mtl;
+
+		if (mtl.tiled) {
 			const tileValue = ((Math.floor(r.I.x * 16 + 2000) & 31) == 0 || (Math.floor(r.I.z * 16 + 2000) & 31) == 0) ? .05 : .4;
 			color.mul(tileValue);
 		}
 
 		if (camera.maxDepth == 0) //TODO
-			return r.i.diffCol;
+			return mtl.diffCol;
 
 		const selector = xor32();
 		let R = null;
-		let cmp = r.i.refr;
+		let cmp = mtl.refr;
 
 		if (cmp > selector) {
 			const cosI = -dot(r.N, r.D);
 			const sinI2 = 1 - cosI * cosI;
-			const n2 = r.Inside ? 1 : r.i.rIdx;
+			const n2 = r.inside ? 1 : mtl.rIdx;
 			const n = n1 / n2;
 			const cosT2 = 1 - n * n * sinI2;
 			let R0 = (n1 - n2) / (n1 + n2);
@@ -55,17 +57,17 @@ function RayTrace(r) {
 			if (cosT2 > 0 && Fr < xor32()) {
 				R = mul(r.D, n).add(mul(r.N, n * cosI - Math.sqrt(cosT2)));
 				n1 = n2;
-				color.mul(r.Inside ? exp(mul(r.i.absCol, -r.t)) : r.i.diffCol);
+				color.mul(r.inside ? exp(mul(mtl.absCol, -r.t)) : mtl.diffCol);
 			} else {
-				R = frameMul(reflect(r.D, r.N), cosineHemSample(r.i.gloss));
-				color.mul(r.i.specCol);
+				R = frameMul(reflect(r.D, r.N), cosineHemSample(mtl.gloss));
+				color.mul(mtl.specCol);
 			}
-		} else if ((cmp += r.i.spec) > selector) {
-			R = frameMul(reflect(r.D, r.N), cosineHemSample(r.i.gloss));
-			color.mul(r.i.specCol);
-		} else if ((cmp += r.i.diff) > selector) {
+		} else if ((cmp += mtl.spec) > selector) {
+			R = frameMul(reflect(r.D, r.N), cosineHemSample(mtl.gloss));
+			color.mul(mtl.specCol);
+		} else if ((cmp += mtl.diff) > selector) {
 			R = frameMul(r.N, cosineHemSample(xor32()));
-			color.mul(r.i.diffCol);
+			color.mul(mtl.diffCol);
 		} else {
 			color.set(0);
 			break;
@@ -105,9 +107,19 @@ addEventListener("message", function (e) {
 			}
 			break;
 		case 'setup':
-			for (let sphere of e.data.objects)
-				// TODO: Filter on types once more are added.
-				objects.push(new Sphere(sphere));
+			for (let obj of e.data.objects) {
+				switch (obj.type) {
+					case 'Sphere':
+						obj = new Sphere(obj);
+						break;
+					case 'Plane':
+						obj = new Plane(obj);
+						break;
+					default:
+						continue;
+				}
+				objects.push(obj);
+			}
 			accumulator = e.data.accumulator;
 			syncPoint = e.data.syncPoint;
 			break;

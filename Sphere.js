@@ -1,27 +1,12 @@
-function Sphere(p, r2, diff, spec = 0, refr = 0) {
+function Sphere(p, r2, mtl) {
 	if (r2 == null) {
 		this.P = new V(p.P);
 		this.R2 = p.R2;
-		this.diff = p.diff;
-		this.spec = p.spec;
-		this.refr = p.refr;
-		this.gloss = p.gloss;
-		this.rIdx = p.rIdx;
-		this.t = p.t;
-		this.diffCol = new V(p.diffCol);
-		this.specCol = new V(p.specCol);
-		this.absCol = new V(p.absCol);
+		this.mtl = new Material(p.mtl);
 	} else {
 		this.P = p;
 		this.R2 = r2;
-		this.diff = diff;
-		this.spec = spec;
-		this.refr = refr;
-		this.gloss = 0;
-		this.t = false;
-		this.diffCol = new V(0);
-		this.specCol = new V(1);
-		this.absCol = new V(1); //TODO
+		this.mtl = mtl;
 	}
 };
 
@@ -41,7 +26,7 @@ Sphere.prototype.intersect = function (r) {
 				r.i = this;
 				r.I = mul(r.D, t0).add(r.O);
 				r.N = sub(r.I, this.P).normalize();
-				r.Inside = false;
+				r.inside = false;
 			} else {
 				if (t1 <= 0 || t1 >= r.t)
 					return;
@@ -49,7 +34,7 @@ Sphere.prototype.intersect = function (r) {
 				r.i = this;
 				r.I = mul(r.D, t1).add(r.O);
 				r.N = sub(this.P, r.I).normalize();
-				r.Inside = true;
+				r.inside = true;
 			}
 		}
 	}

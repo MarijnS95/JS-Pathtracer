@@ -1,4 +1,3 @@
-EPSILON = 1e-4
 function Ray(o, d) {
 	this.O = o;
 	this.D = d;
@@ -12,7 +11,7 @@ function Ray(o, d) {
 //Ray.createEpsilonOffset = d, o => new Ray(D, add(o, mul(d, EPSILON)));
 
 Ray.prototype.nextRay = function (d) {
-	this.O = add(this.I, mul(d, EPSILON));
+	this.O = mul(d, EPSILON).add(this.I);
 	this.D = d;
 	this.t = 1e34;
 	this.i = null;
