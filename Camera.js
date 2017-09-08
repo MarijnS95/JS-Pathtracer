@@ -20,12 +20,11 @@ function Camera(o, d, fov = 90) {
 		this.lensSize = 0.02;
 		this.focalDistance = 1;
 		this.update();
-		//this.traceFocalDistance();
+		this.traceFocalDistance(ctx.canvas.width / 2, ctx.canvas.height / 2);
 		ctx.canvas.addEventListener("mousemove", this.mouseEvent.bind(this));
 		ctx.canvas.addEventListener("mouseup", this.mouseEvent.bind(this));
 		window.addEventListener("contextmenu", (e) => {
 			e.preventDefault();
-			e.stopPropagation();
 		});
 		window.addEventListener("keydown", this.keyEvent.bind(this));
 		window.addEventListener("keyup", this.keyEvent.bind(this));
@@ -33,7 +32,6 @@ function Camera(o, d, fov = 90) {
 };
 
 Camera.prototype.getRay = function (x, y) {
-	//return new Ray(normalize(V.single(x / 512 - 0.5) * this.fov, (0.5 - y / 512) * this.fov, 1)));
 	x += xor32();
 	y += xor32();
 	const lensx = xor32() - .5;
@@ -96,12 +94,15 @@ Camera.prototype.mouseEvent = function (e) {
 	//this.maxDepth = changed ? 1 : realMaxDepth;
 	if (changed)
 		this.update();
+	e.preventDefault();
 }
 
 Camera.prototype.traceFocalDistance = function (x, y, update = true) {
 	const r = this.getRay(x, y);
 	intersect(r);
-	this.focalDistance = Math.min(100, dot(mul(r.D, r.t), this.D));
+	this.focalDistance = Math.min(100, dot(mulf(r.D, r.t), this.D));
+	if (isNaN(this.focalDistance))
+		this.focalDistance = 1;
 	console.log("Focal distance: ", this.focalDistance);
 	if (update)
 		this.update();
@@ -125,5 +126,5 @@ Camera.prototype.update = function () {
 	this.TopBottom.mulf(2 / ctx.canvas.height);
 	for (let worker of workers)
 		worker.postMessage({ type: "setCamera", camera: this });
-	reset();
+	shouldReset = true;
 };

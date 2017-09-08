@@ -124,11 +124,13 @@ addEventListener("message", function (e) {
 				}
 				objects.push(obj);
 			}
-			accumulator = e.data.accumulator;
 			syncPoint = e.data.syncPoint;
 			break;
 		case "setCamera":
 			camera = new Camera(e.data.camera);
+			break;
+		case "setAccumulator":
+			accumulator = e.data.accumulator;
 			break;
 		case "setSkydome":
 			skydome = e.data.skydome;

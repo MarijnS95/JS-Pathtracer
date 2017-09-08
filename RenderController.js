@@ -13,6 +13,8 @@ let renderStartTime = 0;
 let avgFps = 0;
 let toggleButton = null;
 let renderTimeText = null;
+let shouldReset = false;
+let shouldInitializeStorage = true;
 
 const floor = new Material(0.4, 0.6);
 floor.tiled = true;
@@ -42,13 +44,33 @@ const lights = [];
 function workerMessage(e) {
 	switch (e.data.type) {
 		case "renderDone":
-			renderFinished();
+			renderDone();
 			break;
 	}
 }
 
 function render() {
 	renderStartTime = performance.now();
+
+	if (shouldInitializeStorage) {
+		console.log('New size: ', ctx.canvas.width, ctx.canvas.height);
+		accumulator = new Float32Array(new SharedArrayBuffer(ctx.canvas.width * ctx.canvas.height * 3 * 4));
+		imageData = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
+		for (let worker of workers)
+			worker.postMessage({
+				type: "setAccumulator",
+				accumulator: accumulator
+			});
+		shouldInitializeStorage = false;
+		shouldReset = true;
+	}
+
+	if (shouldReset) {
+		accumulator.fill(0);
+		numSamples = 0;
+		shouldReset = false;
+	}
+
 	numSamples++;
 	scale = 1 / numSamples;
 	syncPoint.fill(0);
@@ -61,7 +83,7 @@ function sat(f) {
 	return (f > 1 ? 1 : (f < 0 ? 0 : Math.sqrt(f))) * 255;
 }
 
-function renderFinished() {
+function renderDone() {
 	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	for (let i = 0; i < ctx.canvas.width * ctx.canvas.height; i++) {
 		imageData.data[i * 4] = sat(accumulator[i * 3]);
@@ -80,10 +102,9 @@ function renderFinished() {
 
 addEventListener("load", function () {
 	loadSkydome();
-	ctx = document.querySelector("canvas").getContext("2d");
-	accumulator = new Float32Array(new SharedArrayBuffer(ctx.canvas.width * ctx.canvas.height * 3 * 4));
+	let canvas = document.querySelector("canvas");
+	ctx = canvas.getContext("2d");
 	syncPoint = new Uint32Array(new SharedArrayBuffer(Uint32Array.BYTES_PER_ELEMENT * 2));
-	imageData = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
 
 	for (let obj of objects)
 		obj.type = obj.constructor.name;
@@ -95,16 +116,23 @@ addEventListener("load", function () {
 		worker.postMessage({
 			type: "setup",
 			objects: objects,
-			accumulator: accumulator,
 			syncPoint: syncPoint
 		});
 		workers.push(worker);
 	}
-	camera = new Camera(V.single(0), new V(0, 0, 1));
 	console.log("Spawned all workers");
+
+	camera = new Camera(V.single(0), new V(0, 0, 1));
+
 	renderTimeText = document.querySelector('#renderTime');
 	toggleButton = document.querySelector('#toggle');
 	toggleButton.addEventListener("click", toggleRendering);
+	// canvas.addEventListener('resize',
+	// TODO: Why is this not called?
+	canvas.onresize = function (e) {
+		shouldInitializeStorage = true;
+		camera.update();
+	};
 });
 
 function setIsRendering(value) {
@@ -123,11 +151,6 @@ addEventListener("keypress", function (e) {
 		toggleRendering();
 });
 
-function reset() {
-	accumulator.fill(0);
-	numSamples = 0;
-}
-
 let skydomeWidth = 0, skydomeHeight = 0;
 
 function loadSkydome() {
@@ -141,6 +164,6 @@ function loadSkydome() {
 			console.log("Skydome ready!", skydomeWidth, skydomeHeight, skydome);
 			for (let worker of workers)
 				worker.postMessage({ type: "setSkydome", skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });
-			reset();
+			shouldReset = true;
 		});
 }
