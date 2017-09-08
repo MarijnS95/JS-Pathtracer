@@ -24,14 +24,15 @@ redDiffuse.diffCol = new V(1, 0, 0);
 const redTransparent = new Material(0, 0, 1);
 redTransparent.diffCol = new V(1);
 redTransparent.absCol = new V(.2, .93, .93).mul(2.5);
-redTransparent.rIdx = 1.5;
-
+const redRefr = new Material(redTransparent);
+redRefr.rIdx = 1.5;
 
 const objects = [
 	new Plane(-1, new V(0, 1, 0), floor),
 	new Sphere(new V(-1, 0, 4), 0.32, new Material(0, 1)),
 	new Sphere(new V(1, 0, 4), 0.32, redDiffuse),
-	new Sphere(new V(0, 0, 2.8), 0.32, redTransparent)
+	new Sphere(new V(0, 0, 2.8), 0.32, redRefr),
+	new Box(new V(-2, -.5, 2), new V(-1, .5, 3), redTransparent)
 ];
 
 //, new Sphere(new V(0, 0, 12), 0.32, 1, 0, 0)];

@@ -2,6 +2,14 @@ function sub(a, b) {
 	return new V(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
+function fsub(a, b) {
+	return new V(a - b.x, a - b.y, a - b.z);
+}
+
+function subf(a, b) {
+	return new V(a.x - b, a.y - b, a.z - b);
+}
+
 function add(a, b) {
 	return new V(a.x + b.x, a.y + b.y, a.z + b.z);
 }
@@ -15,6 +23,15 @@ function mul(a, b) {
 		return new V(a.x * b.x, a.y * b.y, a.z * b.z);
 	else
 		return new V(a.x * b, a.y * b, a.z * b);
+}
+
+function div(a, b) {
+	if (b instanceof V && a instanceof V)
+		return new V(a.x / b.x, a.y / b.y, a.z / b.z);
+	else if (b instanceof V)
+		return new V(a / b.x, a / b.y, a / b.z);
+	else
+		return new V(a.x / b, a.y / b, a.z / b);
 }
 
 function normalize(v) {
@@ -43,6 +60,14 @@ function neg(v) {
 
 function abs(v) {
 	return new V(Math.abs(v.x), Math.abs(v.y), Math.abs(v.z));
+}
+
+function min(a, b) {
+	return new V(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z));
+}
+
+function max(a, b) {
+	return new V(Math.max(a.x, b.x), Math.max(a.y, b.y), Math.max(a.z, b.z));
 }
 
 function V(x, y, z) {
@@ -112,6 +137,20 @@ V.prototype.set = function (x, y, z) {
 	else
 		this.z = z;
 	return this;
+}
+
+V.prototype.minidx = function () {
+	if (this.y < this.x)
+		return this.y < this.z ? 'y' : 'z';
+	else // x < y
+		return this.x < this.z ? 'x' : 'z';
+}
+
+V.prototype.maxidx = function () {
+	if (this.y > this.x)
+		return this.y > this.z ? 'y' : 'z';
+	else // x > y
+		return this.x > this.z ? 'x' : 'z';
 }
 
 V.prototype.normalize = function () {

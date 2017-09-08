@@ -1,5 +1,5 @@
 //initialize
-importScripts("Shared.js", "Vector.js", "Material.js", "Sphere.js", "Plane.js", "Camera.js", "Ray.js", "Light.js");
+importScripts("Shared.js", "Vector.js", "Material.js", "Sphere.js", "Plane.js", "Box.js", "Camera.js", "Ray.js", "Light.js");
 
 //script running in a web worker
 let objects = [];
@@ -21,7 +21,7 @@ function SampleSkydome(dir) {
 
 function RayTrace(r) {
 	let color = new V(1);
-	let n1 = 1.0;
+	let n1 = 1;
 	for (let depth = 0; ; depth++) {
 		if (depth >= camera.maxDepth)
 			return new V(0);
@@ -33,41 +33,42 @@ function RayTrace(r) {
 
 		const mtl = r.i.mtl;
 
-		if (mtl.tiled) {
-			const tileValue = ((Math.floor(r.I.x * 16 + 2000) & 31) == 0 || (Math.floor(r.I.z * 16 + 2000) & 31) == 0) ? .05 : .4;
-			color.mul(tileValue);
-		}
+		if (camera.maxDepth == 1) //TODO
+			return mul(mtl.getDiffuse(r), mtl.diff).add(mul(mtl.specCol, mtl.spec));
 
-		if (camera.maxDepth == 0) //TODO
-			return mtl.diffCol;
+		if (r.inside)
+			color.mul(exp(mul(mtl.absCol, -r.t)));
 
 		const selector = xor32();
-		let R = null;
 		let cmp = mtl.refr;
+		let R = null;
 
 		if (cmp > selector) {
-			const cosI = -dot(r.N, r.D);
-			const sinI2 = 1 - cosI * cosI;
+			// In case the camera is already inside an object (because the above n1 = 1 assumes the camera is in air):
+			if (r.inside && depth == 0)
+				n1 = mat.rIdx;
 			const n2 = r.inside ? 1 : mtl.rIdx;
 			const n = n1 / n2;
-			const cosT2 = 1 - n * n * sinI2;
+
+			const cosI = -dot(r.N, r.D);
+			const sin2I = 1 - cosI * cosI;
+			const cos2T = 1 - n * n * sin2I;
 			let R0 = (n1 - n2) / (n1 + n2);
 			R0 *= R0;
 			const Fr = R0 + (1 - R0) * Math.pow(1 - cosI, 5);
-			if (cosT2 > 0 && Fr < xor32()) {
-				R = mul(r.D, n).add(mul(r.N, n * cosI - Math.sqrt(cosT2)));
+			if (cos2T > 0 && Fr < xor32()) {
+				R = mul(r.D, n).add(mul(r.N, n * cosI - Math.sqrt(cos2T)));
 				n1 = n2;
-				color.mul(r.inside ? exp(mul(mtl.absCol, -r.t)) : mtl.diffCol);
 			} else {
 				R = frameMul(reflect(r.D, r.N), cosineHemSample(mtl.gloss));
-				color.mul(mtl.specCol);
+				color.mul(mtl.getSpecular(r));
 			}
 		} else if ((cmp += mtl.spec) > selector) {
 			R = frameMul(reflect(r.D, r.N), cosineHemSample(mtl.gloss));
-			color.mul(mtl.specCol);
+			color.mul(mtl.getSpecular(r));
 		} else if ((cmp += mtl.diff) > selector) {
 			R = frameMul(r.N, cosineHemSample(xor32()));
-			color.mul(mtl.diffCol);
+			color.mul(mtl.getDiffuse(r));
 		} else {
 			color.set(0);
 			break;
@@ -114,6 +115,9 @@ addEventListener("message", function (e) {
 						break;
 					case 'Plane':
 						obj = new Plane(obj);
+						break;
+					case 'Box':
+						obj = new Box(obj);
 						break;
 					default:
 						continue;
