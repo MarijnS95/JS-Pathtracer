@@ -1,8 +1,8 @@
 //file containing important global variables and scripts
-var chunkWidth = 16, chunkHeight = 16;
-var INVPI = 1 / Math.PI;
+const chunkWidth = 16, chunkHeight = 16;
+const INVPI = 1 / Math.PI;
 
-var seed = 0;
+let seed = 0;
 
 function xor32() {
 	seed ^= seed << 13;
@@ -14,20 +14,19 @@ function xor32() {
 }
 
 function cosineHemSample(v) {
-	var phi = Math.PI * 2 * xor32();
-	var cosTheta = Math.sqrt(1 - v), sinTheta = Math.sqrt(v);
+	const phi = Math.PI * 2 * xor32();
+	const cosTheta = Math.sqrt(1 - v), sinTheta = Math.sqrt(v);
 	return new V(Math.cos(phi) * sinTheta, Math.sin(phi) * sinTheta, cosTheta);
 }
 
 function intersect(r) {
-	for (var i = 0; i < spheres.length; i++)
-		spheres[i].intersect(r);
+	for (let object of objects)
+		object.intersect(r);
 }
 
 function intersects(r) {
-	for (var i = 0; i < spheres.length; i++) {
-		if (spheres[i].intersects(r))
+	for (let object of objects)
+		if (object.intersects(r))
 			return true;
-	}
 	return false;
 }

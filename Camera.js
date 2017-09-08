@@ -1,15 +1,16 @@
-var realMaxDepth = 8;
+const realMaxDepth = 8;
 
 function Camera(o, d, fov = 90) {
 	if (d == null) {
-		this.O = o.O;
-		this.tl = o.tl;
-		this.right = o.right;
-		this.down = o.down;
+		this.O = new V(o.O);
+		this.tl = new V(o.tl);
+		this.right = new V(o.right);
+		this.down = new V(o.down);
+		this.TopBottom = new V(o.TopBottom);
+		this.LeftRight = new V(o.LeftRight);
+
 		this.lensSize = o.lensSize;
 		this.focalDistance = o.focalDistance;
-		this.TopBottom = o.TopBottom;
-		this.LeftRight = o.LeftRight;
 		this.maxDepth = o.maxDepth;
 	} else {
 		this.fov = Math.tan(fov * Math.PI / 360);
@@ -35,16 +36,16 @@ Camera.prototype.getRay = function (x, y) {
 	//return new Ray(normalize(new V((x / 512 - 0.5) * this.fov, (0.5 - y / 512) * this.fov, 1)));
 	x += xor32();
 	y += xor32();
-	var lensx = xor32() - .5;
-	var lensy = xor32() - .5;
-	var lensPos = mul(add(mul(this.right, lensx), mul(this.down, lensy)), this.lensSize);
-	var d = sub(add(add(this.tl, mul(this.LeftRight, x)), mul(this.TopBottom, y)), lensPos);
-	var r = new Ray(add(this.O, lensPos), normalize(d));
+	const lensx = xor32() - .5;
+	const lensy = xor32() - .5;
+	const lensPos = mul(this.right, lensx).add(mul(this.down, lensy)).mul(this.lensSize);
+	const d = mul(this.LeftRight, x).add(mul(this.TopBottom, y)).add(this.tl).sub(lensPos);
+	const r = new Ray(lensPos.add(this.O), d.normalize());
 	return r;
 };
 
 Camera.prototype.keyEvent = function (e) {
-	var changed = false;
+	let changed = false;
 	if (e.type == "keydown") {
 		if (e.which == 87) {
 			this.O.add(mul(this.D, 0.01));
@@ -84,7 +85,7 @@ Camera.prototype.keyEvent = function (e) {
 };
 
 Camera.prototype.mouseEvent = function (e) {
-	var changed = false;
+	let changed = false;
 	if (e.buttons & 1 == 1) {
 		this.D = normalize(add(sub(this.D, mul(this.right, e.movementX * 0.001)), mul(this.up, e.movementY * 0.005)));
 		changed = true;
@@ -98,7 +99,7 @@ Camera.prototype.mouseEvent = function (e) {
 }
 
 Camera.prototype.traceFocalDistance = function (x, y, update = true) {
-	var r = this.getRay(x, y);
+	const r = this.getRay(x, y);
 	intersect(r);
 	this.focalDistance = Math.min(100, dot(mul(r.D, r.t), this.D));
 	console.log("Focal distance: ", this.focalDistance);
@@ -113,18 +114,16 @@ Camera.prototype.update = function () {
 	this.LeftRight = mul(this.right, this.fov * this.focalDistance);
 	this.TopBottom = mul(this.down, this.fov * this.focalDistance);
 
-	var ar = ctx.canvas.width / ctx.canvas.height;
+	const ar = ctx.canvas.width / ctx.canvas.height;
 	if (ar > 1)
 		this.LeftRight.mul(ar);
 	else
 		this.TopBottom.mul(1 / ar);
-	//eventually multiply d with it's corresponding 
-	this.tl = sub(mul(this.D, this.focalDistance), add(this.LeftRight, this.TopBottom));
+	this.tl = mul(this.D, this.focalDistance).sub(add(this.LeftRight, this.TopBottom));
 
 	this.LeftRight.mul(2 / ctx.canvas.width);
 	this.TopBottom.mul(2 / ctx.canvas.height);
-	//this.tl.print("topLeft: ");
-	for (var i = 0; i < workers.length; i++)
-		workers[i].postMessage({ type: "setCamera", camera: this });
+	for (let worker of workers)
+		worker.postMessage({ type: "setCamera", camera: this });
 	reset();
 };

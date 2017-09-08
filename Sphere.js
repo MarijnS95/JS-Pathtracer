@@ -26,29 +26,29 @@ function Sphere(p, r2, diff, spec = 0, refr = 0) {
 };
 
 Sphere.prototype.intersect = function (r) {
-	var L = sub(this.P, r.O);
-	var l = dot(L, r.D);
+	const L = sub(this.P, r.O);
+	const l = dot(L, r.D);
 	if (l > 0) {
-		var d2 = dot(L, L) - l * l;
+		const d2 = dot(L, L) - l * l;
 		if (d2 < this.R2) {
-			var thc = Math.sqrt(this.R2 - d2);
-			var t0 = l - thc,
+			const thc = Math.sqrt(this.R2 - d2);
+			const t0 = l - thc,
 				t1 = l + thc;
 			if (t0 > 0) {
 				if (t0 >= r.t)
 					return;
 				r.t = t0;
 				r.i = this;
-				r.I = add(r.O, mul(r.D, t0));
-				r.N = normalize(sub(r.I, this.P));
+				r.I = mul(r.D, t0).add(r.O);
+				r.N = sub(r.I, this.P).normalize();
 				r.Inside = false;
 			} else {
 				if (t1 <= 0 || t1 >= r.t)
 					return;
 				r.t = t1;
 				r.i = this;
-				r.I = add(r.O, mul(r.D, t1));
-				r.N = normalize(sub(this.P, r.I));
+				r.I = mul(r.D, t1).add(r.O);
+				r.N = sub(this.P, r.I).normalize();
 				r.Inside = true;
 			}
 		}
@@ -56,7 +56,7 @@ Sphere.prototype.intersect = function (r) {
 };
 
 Sphere.prototype.intersects = function (r) {
-	var L = sub(this.P, r.O);
-	var l = dot(L, r.D);
+	const L = sub(this.P, r.O);
+	const l = dot(L, r.D);
 	return l > 0 && (dot(L, L) - l * l < this.R2);
 };

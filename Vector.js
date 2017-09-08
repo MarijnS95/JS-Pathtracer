@@ -75,6 +75,19 @@ V.prototype.add = function (v) {
 	return this;
 }
 
+V.prototype.sub = function (v) {
+	if (v instanceof V) {
+		this.x -= v.x;
+		this.y -= v.y;
+		this.z -= v.z;
+	} else {
+		this.x -= v;
+		this.y -= v;
+		this.z -= v;
+	}
+	return this;
+}
+
 V.prototype.mul = function (v) {
 	if (v instanceof V) {
 		this.x *= v.x;
@@ -101,13 +114,23 @@ V.prototype.set = function (x, y, z) {
 	return this;
 }
 
+V.prototype.normalize = function () {
+	// Normalizes the current vector and returns it for chaining.
+	this.mul(1 / length(this));
+	return this;
+}
+V.prototype.normalized = function () {
+	// Returns a new vector that is normalized.
+	return mul(this, 1 / length(this));
+}
+
 V.prototype.print = function (pre = "") {
 	console.log(pre + "<" + this.x + ", " + this.y + ", " + this.z + ">");
 }
 
 function frameMul(N, v) {
-	var nabs = abs(N);
-	var t = new V(N);
+	const nabs = abs(N);
+	const t = new V(N);
 	if (nabs.x <= nabs.y && nabs.x <= nabs.z)
 		t.x = 1;
 	else if (nabs.y <= nabs.x && nabs.y <= nabs.z)
@@ -115,8 +138,7 @@ function frameMul(N, v) {
 	else
 		t.z = 1;
 
-	var c = cross(t, N);
-	var T = normalize(c);
-	var B = cross(T, N);
-	return add(mul(T, v.x), add(mul(B, v.y), mul(N, v.z)));
+	const T = cross(t, N).normalize();
+	const B = cross(T, N);
+	return T.mul(v.x).add(B.mul(v.y)).add(N.mul(v.z));
 }
