@@ -6,10 +6,18 @@
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		flex-direction: column;
+		font-family: sans-serif;
 	}
-	
+
 	canvas {
 		background: #333;
+	}
+
+	#renderTime {
+		text-align: right;
+		font-weight: bold;
+		font-size: 16;
 	}
 </style>
 
@@ -24,7 +32,10 @@
 </head>
 
 <body>
-	<canvas width="512" height="512"></canvas>
+	<div>
+		<div id="renderTime"></div>
+		<canvas width="512" height="512"></canvas>
+	</div>
 </body>
 
 </html>

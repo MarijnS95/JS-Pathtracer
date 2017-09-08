@@ -9,6 +9,8 @@ let isRendering = false;
 let imageData = null;
 let camera = null;
 let syncPoint = null;
+let renderStartTime = 0;
+let avgFps = 0;
 
 const objects = [
 	new Sphere(new V(0, -10000, 0), 9999 * 9999, 0.4, 0.15),
@@ -40,13 +42,13 @@ function workerMessage(e) {
 }
 
 function render() {
-	console.time("renderTime");
+	renderStartTime = performance.now();
 	numSamples++;
 	scale = 1 / numSamples;
 	syncPoint.fill(0);
 	let xch = ctx.canvas.width / chunkWidth;
-	for (let i = 0; i < workers.length; i++)
-		workers[i].postMessage({ type: "startRender", xChunks: xch, totalWork: xch * (ctx.canvas.height / chunkHeight), stride: ctx.canvas.width, rnd: numSamples * Math.random() * 0x7fff * 154323451 >>> 0 });
+	for (let worker of workers)
+		worker.postMessage({ type: "startRender", xChunks: xch, totalWork: xch * (ctx.canvas.height / chunkHeight), stride: ctx.canvas.width, rnd: numSamples * Math.random() * 0x7fff * 154323451 >>> 0 });
 }
 function sat(f) {
 	f *= scale;
@@ -64,10 +66,12 @@ function renderFinished() {
 	ctx.putImageData(imageData, 0, 0);
 	if (isRendering)
 		requestAnimationFrame(render);
-	console.timeEnd("renderTime");
+	end = performance.now() - renderStartTime;
+	currentFps = 1000 / (end | 0);
+	avgFps = (avgFps + currentFps) * .5;
+	document.querySelector('#renderTime').textContent = 'Rendertime: ' + (end | 0) + 'ms; ' + (avgFps | 0) + 'fps';
 }
 
-//initialize
 addEventListener("load", function () {
 	loadSkydome();
 	ctx = document.querySelector("canvas").getContext("2d");
