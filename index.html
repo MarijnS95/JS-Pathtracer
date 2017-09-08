@@ -7,7 +7,10 @@
 		justify-content: center;
 		align-items: center;
 		flex-direction: column;
+
 		font-family: sans-serif;
+		font-weight: bold;
+		font-size: 16;
 	}
 
 	canvas {
@@ -16,8 +19,6 @@
 
 	#renderTime {
 		text-align: right;
-		font-weight: bold;
-		font-size: 16;
 	}
 </style>
 
@@ -36,6 +37,7 @@
 
 <body>
 	<div>
+		<button id="toggle">Start</button>
 		<div id="renderTime"></div>
 		<canvas width="512" height="512"></canvas>
 	</div>

@@ -11,6 +11,8 @@ let camera = null;
 let syncPoint = null;
 let renderStartTime = 0;
 let avgFps = 0;
+let toggleButton = null;
+let renderTimeText = null;
 
 const floor = new Material(0.4, 0.6);
 floor.tiled = true;
@@ -73,7 +75,7 @@ function renderFinished() {
 	end = performance.now() - renderStartTime;
 	currentFps = 1000 / (end | 0);
 	avgFps = (avgFps + currentFps) * .5;
-	document.querySelector('#renderTime').textContent = 'Rendertime: ' + (end | 0) + 'ms; ' + (avgFps | 0) + 'fps';
+	renderTime.textContent = 'Rendertime: ' + (end | 0) + 'ms; ' + (avgFps | 0) + 'fps';
 }
 
 addEventListener("load", function () {
@@ -99,15 +101,26 @@ addEventListener("load", function () {
 		workers.push(worker);
 	}
 	camera = new Camera(V.single(0), new V(0, 0, 1));
-	console.log("Created all workers");
+	console.log("Spawned all workers");
+	renderTimeText = document.querySelector('#renderTime');
+	toggleButton = document.querySelector('#toggle');
+	toggleButton.addEventListener("click", toggleRendering);
 });
 
+function setIsRendering(value) {
+	isRendering = value;
+	toggleButton.textContent = isRendering ? "Stop" : "Start";
+	if (isRendering)
+		render();
+}
+
+function toggleRendering() {
+	setIsRendering(!isRendering);
+}
+
 addEventListener("keypress", function (e) {
-	if (e.which == 32) {
-		isRendering = !isRendering;
-		if (isRendering)
-			render();
-	}
+	if (e.which == 32)
+		toggleRendering();
 });
 
 function reset() {
