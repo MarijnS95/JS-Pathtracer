@@ -2,12 +2,12 @@ function sub(a, b) {
 	return new V(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
-function fsub(a, b) {
-	return new V(a - b.x, a - b.y, a - b.z);
+function fsub(f, v) {
+	return new V(f - v.x, f - v.y, f - v.z);
 }
 
-function subf(a, b) {
-	return new V(a.x - b, a.y - b, a.z - b);
+function subf(v, f) {
+	return new V(v.x - f, v.y - f, v.z - f);
 }
 
 function add(a, b) {
@@ -19,23 +19,27 @@ function dot(a, b) {
 }
 
 function mul(a, b) {
-	if (b instanceof V)
-		return new V(a.x * b.x, a.y * b.y, a.z * b.z);
-	else
-		return new V(a.x * b, a.y * b, a.z * b);
+	return new V(a.x * b.x, a.y * b.y, a.z * b.z);
+}
+
+function mulf(v, f) {
+	return new V(v.x * f, v.y * f, v.z * f);
 }
 
 function div(a, b) {
-	if (b instanceof V && a instanceof V)
-		return new V(a.x / b.x, a.y / b.y, a.z / b.z);
-	else if (b instanceof V)
-		return new V(a / b.x, a / b.y, a / b.z);
-	else
-		return new V(a.x / b, a.y / b, a.z / b);
+	return new V(a.x / b.x, a.y / b.y, a.z / b.z);
+}
+
+function divf(v, f) {
+	return new V(v.x / f, v.y / f, v.z / f);
+}
+
+function fdiv(f, v) {
+	return new V(f / v.x, f / v.y, f / v.z);
 }
 
 function normalize(v) {
-	return mul(v, 1 / length(v));
+	return mulf(v, 1 / length(v));
 }
 
 function length(v) {
@@ -43,7 +47,7 @@ function length(v) {
 }
 
 function reflect(d, n) {
-	return sub(d, mul(n, 2 * dot(d, n)));
+	return sub(d, mulf(n, 2 * dot(d, n)));
 }
 
 function cross(a, b) {
@@ -71,58 +75,58 @@ function max(a, b) {
 }
 
 function V(x, y, z) {
-	if (typeof x === "number") {
-		this.x = x;
-		this.y = y;
-		this.z = z;
-		if (y == null)
-			this.y = x;
-		if (z == null)
-			this.z = x;
-	} else {
-		this.x = x.x;
-		this.y = x.y;
-		this.z = x.z;
-	}
-	//console.log(this);
+	this.x = x;
+	this.y = y;
+	this.z = z;
+}
+
+V.single = function (f) {
+	return new V(f, f, f);
+}
+
+V.copy = function (v) {
+	return new V(v.x, v.y, v.z);
 }
 
 V.prototype.add = function (v) {
-	if (v instanceof V) {
-		this.x += v.x;
-		this.y += v.y;
-		this.z += v.z;
-	} else {
-		this.x += v;
-		this.y += v;
-		this.z += v;
-	}
+	this.x += v.x;
+	this.y += v.y;
+	this.z += v.z;
+	return this;
+}
+
+V.prototype.addf = function (f) {
+	this.x += f;
+	this.y += f;
+	this.z += f;
 	return this;
 }
 
 V.prototype.sub = function (v) {
-	if (v instanceof V) {
-		this.x -= v.x;
-		this.y -= v.y;
-		this.z -= v.z;
-	} else {
-		this.x -= v;
-		this.y -= v;
-		this.z -= v;
-	}
+	this.x -= v.x;
+	this.y -= v.y;
+	this.z -= v.z;
+	return this;
+}
+
+V.prototype.subf = function (f) {
+	this.x -= f;
+	this.y -= f;
+	this.z -= f;
 	return this;
 }
 
 V.prototype.mul = function (v) {
-	if (v instanceof V) {
-		this.x *= v.x;
-		this.y *= v.y;
-		this.z *= v.z;
-	} else {
-		this.x *= v;
-		this.y *= v;
-		this.z *= v;
-	}
+	this.x *= v.x;
+	this.y *= v.y;
+	this.z *= v.z;
+	return this;
+}
+
+V.prototype.mulf = function (f) {
+	this.x *= f;
+	this.y *= f;
+	this.z *= f;
 	return this;
 }
 
@@ -155,12 +159,13 @@ V.prototype.maxidx = function () {
 
 V.prototype.normalize = function () {
 	// Normalizes the current vector and returns it for chaining.
-	this.mul(1 / length(this));
+	this.mulf(1 / length(this));
 	return this;
 }
+
 V.prototype.normalized = function () {
 	// Returns a new vector that is normalized.
-	return mul(this, 1 / length(this));
+	return mulf(this, 1 / length(this));
 }
 
 V.prototype.print = function (pre = "") {
@@ -169,7 +174,7 @@ V.prototype.print = function (pre = "") {
 
 function frameMul(N, v) {
 	const nabs = abs(N);
-	const t = new V(N);
+	const t = V.copy(N);
 	if (nabs.x <= nabs.y && nabs.x <= nabs.z)
 		t.x = 1;
 	else if (nabs.y <= nabs.x && nabs.y <= nabs.z)
@@ -179,5 +184,5 @@ function frameMul(N, v) {
 
 	const T = cross(t, N).normalize();
 	const B = cross(T, N);
-	return T.mul(v.x).add(B.mul(v.y)).add(mul(N, v.z));
+	return T.mulf(v.x).add(B.mulf(v.y)).add(mulf(N, v.z));
 }

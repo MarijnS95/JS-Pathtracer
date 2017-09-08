@@ -15,15 +15,15 @@ let avgFps = 0;
 const floor = new Material(0.4, 0.6);
 floor.tiled = true;
 floor.gloss = 0.0001;
-floor.diffCol = new V(0.7);
-floor.specCol = new V(0.7);
+floor.diffCol = V.single(0.7);
+floor.specCol = V.single(0.7);
 
 const redDiffuse = new Material(1);
 redDiffuse.diffCol = new V(1, 0, 0);
 
 const redTransparent = new Material(0, 0, 1);
-redTransparent.diffCol = new V(1);
-redTransparent.absCol = new V(.2, .93, .93).mul(2.5);
+redTransparent.diffCol = V.single(1);
+redTransparent.absCol = new V(.2, .93, .93).mulf(2.5);
 const redRefr = new Material(redTransparent);
 redRefr.rIdx = 1.5;
 
@@ -35,9 +35,7 @@ const objects = [
 	new Box(new V(-2, -.5, 2), new V(-1, .5, 3), redTransparent)
 ];
 
-//, new Sphere(new V(0, 0, 12), 0.32, 1, 0, 0)];
-
-const lights = [];//[new Light(new V(2), new V(40))];
+const lights = [];
 
 function workerMessage(e) {
 	switch (e.data.type) {
@@ -100,7 +98,7 @@ addEventListener("load", function () {
 		});
 		workers.push(worker);
 	}
-	camera = new Camera(new V(0), new V(0, 0, 1));
+	camera = new Camera(V.single(0), new V(0, 0, 1));
 	console.log("Created all workers");
 });
 

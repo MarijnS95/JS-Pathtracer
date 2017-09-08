@@ -1,13 +1,13 @@
 function Box(mi, ma, mtl) {
 	if (ma == null) {
-		this.min = new V(mi.min);
-		this.max = new V(mi.max);
-		this.center = new V(mi.center);
+		this.min = V.copy(mi.min);
+		this.max = V.copy(mi.max);
+		this.center = V.copy(mi.center);
 		this.mtl = new Material(mi.mtl);
 	} else {
 		this.min = min(mi, ma);
 		this.max = max(mi, ma);
-		this.center = add(mi, ma).mul(.5);
+		this.center = add(mi, ma).mulf(.5);
 		this.mtl = mtl;
 	}
 };
@@ -32,12 +32,12 @@ Box.prototype.intersect = function (r) {
 		r.inside = inside;
 		r.i = this;
 		r.t = tmin;
-		r.I = mul(r.D, tmin).add(r.O);
-		r.N = new V(0);
+		r.I = mulf(r.D, tmin).add(r.O);
+		r.N = V.single(0);
 		r.N[inside ? maxidx : minidx] = 1;
 		// r.N *= inside ? -1 : 1;
 		// r.N *= (dot(sub(r.I, this.center), r.N) < 0) ? -1 : 1;
-		r.N.mul((inside ? -1 : 1) * (dot(sub(r.I, this.center), r.N) < 0 ? -1 : 1));
+		r.N.mulf((inside ? -1 : 1) * (dot(sub(r.I, this.center), r.N) < 0 ? -1 : 1));
 		// r.N *= (inside ? -1 : 1) *
 		// 	(dot(sub(r.I, this.center), r.N) < 0) ? -1 : 1;
 		// r.N.mul((inside ^ (dot(sub(r.I, this.center), r.N) < 0) ? -1 : 1));

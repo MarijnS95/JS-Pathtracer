@@ -1,6 +1,6 @@
 function Sphere(p, r2, mtl) {
 	if (r2 == null) {
-		this.P = new V(p.P);
+		this.P = V.copy(p.P);
 		this.R2 = p.R2;
 		this.mtl = new Material(p.mtl);
 	} else {
@@ -24,7 +24,7 @@ Sphere.prototype.intersect = function (r) {
 					return;
 				r.t = t0;
 				r.i = this;
-				r.I = mul(r.D, t0).add(r.O);
+				r.I = mulf(r.D, t0).add(r.O);
 				r.N = sub(r.I, this.P).normalize();
 				r.inside = false;
 			} else {
@@ -32,7 +32,7 @@ Sphere.prototype.intersect = function (r) {
 					return;
 				r.t = t1;
 				r.i = this;
-				r.I = mul(r.D, t1).add(r.O);
+				r.I = mulf(r.D, t1).add(r.O);
 				r.N = sub(this.P, r.I).normalize();
 				r.inside = true;
 			}

@@ -20,11 +20,11 @@ function SampleSkydome(dir) {
 }
 
 function RayTrace(r) {
-	let color = new V(1);
+	let color = V.single(1);
 	let n1 = 1;
 	for (let depth = 0; ; depth++) {
 		if (depth >= camera.maxDepth)
-			return new V(0);
+			return V.single(0);
 		intersect(r);
 		if (r.i == null) {
 			color.mul(SampleSkydome(r.D));
@@ -34,10 +34,10 @@ function RayTrace(r) {
 		const mtl = r.i.mtl;
 
 		if (camera.maxDepth == 1) //TODO
-			return mul(mtl.getDiffuse(r), mtl.diff).add(mul(mtl.specCol, mtl.spec));
+			return mulf(mtl.getDiffuse(r), mtl.diff).add(mulf(mtl.specCol, mtl.spec));
 
 		if (r.inside)
-			color.mul(exp(mul(mtl.absCol, -r.t)));
+			color.mul(exp(mulf(mtl.absCol, -r.t)));
 
 		const selector = xor32();
 		let cmp = mtl.refr;
@@ -57,7 +57,7 @@ function RayTrace(r) {
 			R0 *= R0;
 			const Fr = R0 + (1 - R0) * Math.pow(1 - cosI, 5);
 			if (cos2T > 0 && Fr < xor32()) {
-				R = mul(r.D, n).add(mul(r.N, n * cosI - Math.sqrt(cos2T)));
+				R = mulf(r.D, n).add(mulf(r.N, n * cosI - Math.sqrt(cos2T)));
 				n1 = n2;
 			} else {
 				R = frameMul(reflect(r.D, r.N), cosineHemSample(mtl.gloss));
