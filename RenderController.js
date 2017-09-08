@@ -111,13 +111,17 @@ function loadSkydome() {
 		skydomeWidth = dv.getInt32(0, true);
 		skydomeHeight = dv.getInt32(4, true);
 		var skydomeView = new Float32Array(ab, 8, dv.byteLength / 4 - 2);
-		// Only want the skydome in memory once, shared for all threads.
-		var sab = new SharedArrayBuffer(skydomeView.byteLength);
-		skydome = new Float32Array(sab);
-		//skydomeView.transfer(skydome);
-		for (var i = 0; i < skydomeView.length; i++)
-			skydome[i] = skydomeView[i];
-		delete skydomeView, dv, ab;
+		if (typeof SharedArrayBuffer === "undefined")
+			skydome = skydomeView;
+		else {
+			// Only want the skydome in memory once, shared for all threads.
+			var sab = new SharedArrayBuffer(skydomeView.byteLength);
+			skydome = new Float32Array(sab);
+			// skydomeView.transfer(skydome);
+			for (var i = 0; i < skydomeView.length; i++)
+				skydome[i] = skydomeView[i];
+			delete skydomeView, dv, ab;
+		}
 		console.log("Skydome ready!", skydomeWidth, skydomeHeight, skydome);
 		for (var i = 0; i < workers.length; i++)
 			workers[i].postMessage({ type: "setSkydome", skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });

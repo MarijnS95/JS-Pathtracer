@@ -59,7 +59,7 @@ function RayTrace(r) {
 				n1 = n2;
 				color.mul(r.Inside ? exp(mul(r.i.absCol, -r.t)) : col);
 			} else {
-				R = reflect(r.D, r.N);
+				R = frameMul(reflect(r.D, r.N), cosineHemSample(r.i.gloss));
 				color.mul(r.i.specCol);
 			}
 		} else if ((cmp += r.i.spec) > selector) {
