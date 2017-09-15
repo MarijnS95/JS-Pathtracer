@@ -43,36 +43,37 @@ Camera.prototype.getRay = function (x, y) {
 };
 
 Camera.prototype.keyEvent = function (e) {
+	const speed = 0.4;
 	let changed = false;
 	if (e.type == "keydown") {
 		if (e.which == 87) {
-			this.O.add(mulf(this.D, 0.01));
+			this.O.add(mulf(this.D, speed));
 			changed = true;
 		} else if (e.which == 83) {
-			this.O.add(mulf(this.D, -0.01));
+			this.O.add(mulf(this.D, -speed));
 			changed = true;
 		}
 
 		if (e.which == 68) {
-			this.O.add(mulf(this.right, 0.01));
+			this.O.add(mulf(this.right, speed));
 			changed = true;
 		} else if (e.which == 65) {
-			this.O.add(mulf(this.right, -0.01));
+			this.O.add(mulf(this.right, -speed));
+			changed = true;
+		}
+
+		if (e.which == 81) {
+			this.O.add(mulf(this.up, speed));
+			changed = true;
+		} else if (e.which == 90) {
+			this.O.add(mulf(this.up, -speed));
 			changed = true;
 		}
 
 		if (e.which == 82) {
-			this.O.add(mulf(this.up, 0.01));
-			changed = true;
-		} else if (e.which == 70) {
-			this.O.add(mulf(this.up, -0.01));
-			changed = true;
-		}
-
-		if (e.which == 84) {
 			this.lensSize += 0.01;
 			changed = true;
-		} else if (e.which == 71 && this.lensSize >= 0.01) {
+		} else if (e.which == 70 && this.lensSize >= 0.01) {
 			this.lensSize -= 0.01;
 			changed = true;
 		}
@@ -84,10 +85,18 @@ Camera.prototype.keyEvent = function (e) {
 
 Camera.prototype.mouseEvent = function (e) {
 	let changed = false;
-	if (e.buttons & 1 == 1) {
-		this.D = add(sub(this.D, mulf(this.right, e.movementX * 0.001)), mulf(this.up, e.movementY * 0.005)).normalize();
+	console.log(e.button, e.buttons);
+	if (e.buttons & 1) {
+		this.D.sub(mulf(this.right, e.movementX * 0.001)).add(mulf(this.up, e.movementY * 0.005)).normalize();
 		changed = true;
-	} else if (e.button == 2) {
+	}
+
+	if (e.buttons & 2) {
+		this.O.sub(mulf(this.right, e.movementX * 0.04)).add(mulf(this.up, e.movementY * 0.04));
+		changed = true;
+	}
+
+	if (e.buttons & 4) {
 		this.traceFocalDistance(e.offsetX, e.offsetY, false);
 		changed = true;
 	}

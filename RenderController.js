@@ -13,6 +13,8 @@ let renderStartTime = 0;
 let avgFps = 0;
 let toggleButton = null;
 let renderTimeText = null;
+let renderInfo = null;
+let logDiv = null;
 let shouldReset = false;
 let shouldInitializeStorage = true;
 
@@ -22,21 +24,22 @@ floor.gloss = 0.0001;
 floor.diffCol = V.single(0.7);
 floor.specCol = V.single(0.7);
 
-const redDiffuse = new Material(1);
-redDiffuse.diffCol = new V(1, 0, 0);
+const yellowDiffuse = new Material(1);
+yellowDiffuse.diffCol = new V(1, 1, 0);
 
-const redTransparent = new Material(0, 0, 1);
-redTransparent.diffCol = V.single(1);
-redTransparent.absCol = new V(.2, .93, .93).mulf(2.5);
-const redRefr = new Material(redTransparent);
+const redRefr = new Material(0, 0, 1);
+redRefr.absCol = new V(.2, .93, .93).mulf(2.5);
 redRefr.rIdx = 1.5;
+
+const blueTransparent = new Material(0, 0, 1);
+blueTransparent.absCol = new V(.93, .93, .2).mulf(2.5);
 
 const objects = [
 	new Plane(-1, new V(0, 1, 0), floor),
 	new Sphere(new V(-1, 0, 4), 0.32, new Material(0, 1)),
-	new Sphere(new V(1, 0, 4), 0.32, redDiffuse),
+	new Sphere(new V(1, 0, 4), 0.32, yellowDiffuse),
 	new Sphere(new V(0, 0, 2.8), 0.32, redRefr),
-	new Box(new V(-2, -.5, 2), new V(-1, .5, 3), redTransparent)
+	new Box(new V(-2, -.5, 2), new V(-1, .5, 3), blueTransparent),
 ];
 
 const lights = [];
@@ -68,6 +71,9 @@ function render() {
 	if (shouldReset) {
 		accumulator.fill(0);
 		numSamples = 0;
+
+		renderInfo.textContent = 'pos: ' + camera.O.string() + '; dir: ' + camera.D.string() + '; focus: ' + camera.focalDistance.toFixed(2);
+
 		shouldReset = false;
 	}
 
@@ -101,6 +107,11 @@ function renderDone() {
 }
 
 addEventListener("load", function () {
+	renderTimeText = document.querySelector('#renderTime');
+	renderInfo = document.querySelector('#renderInfo');
+	toggleButton = document.querySelector('#toggle');
+	logDiv = document.querySelector('#log');
+
 	loadSkydome();
 	let canvas = document.querySelector("canvas");
 	ctx = canvas.getContext("2d");
@@ -109,7 +120,7 @@ addEventListener("load", function () {
 	for (let obj of objects)
 		obj.type = obj.constructor.name;
 
-	console.log('Spawning', navigator.hardwareConcurrency, 'worker threads.');
+	log('Spawning ' + navigator.hardwareConcurrency + ' worker threads...');
 	for (let i = 0; i < navigator.hardwareConcurrency; i++) {
 		worker = new Worker("ChunkRenderer.js");
 		worker.onmessage = workerMessage;
@@ -120,15 +131,10 @@ addEventListener("load", function () {
 		});
 		workers.push(worker);
 	}
-	console.log("Spawned all workers");
+	log("Worker threads spawned!");
 
 	camera = new Camera(V.single(0), new V(0, 0, 1));
-
-	renderTimeText = document.querySelector('#renderTime');
-	toggleButton = document.querySelector('#toggle');
 	toggleButton.addEventListener("click", toggleRendering);
-	// canvas.addEventListener('resize',
-	// TODO: Why is this not called?
 	canvas.onresize = function (e) {
 		shouldInitializeStorage = true;
 		camera.update();
@@ -154,6 +160,7 @@ addEventListener("keypress", function (e) {
 let skydomeWidth = 0, skydomeHeight = 0;
 
 function loadSkydome() {
+	log('Fetching skydome...');
 	fetch("Assets/uffizi_probe.float4")
 		.then(r => r.arrayBuffer())
 		.then(ab => {
@@ -161,9 +168,15 @@ function loadSkydome() {
 			skydomeWidth = dv.getInt32(0, true);
 			skydomeHeight = dv.getInt32(4, true);
 			skydome = new Float32Array(ab, 8, dv.byteLength / 4 - 2);
-			console.log("Skydome ready!", skydomeWidth, skydomeHeight, skydome);
 			for (let worker of workers)
 				worker.postMessage({ type: "setSkydome", skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });
+			log('Skydome ready!');
 			shouldReset = true;
 		});
+}
+
+function log(text) {
+	const s = document.createElement('div');
+	s.textContent = text;
+	logDiv.appendChild(s);
 }

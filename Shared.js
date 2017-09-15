@@ -15,9 +15,17 @@ function xor32() {
 }
 
 function cosineHemSample(v) {
+	if (v == 0)
+		return new V(0, 0, 1);
 	const phi = Math.PI * 2 * xor32();
 	const cosTheta = Math.sqrt(1 - v), sinTheta = Math.sqrt(v);
 	return new V(Math.cos(phi) * sinTheta, Math.sin(phi) * sinTheta, cosTheta);
+}
+
+function cosineHemFrame(N, v) {
+	if (v == 0)
+		return N;
+	return frameMul(N, cosineHemSample(v));
 }
 
 function intersect(r) {

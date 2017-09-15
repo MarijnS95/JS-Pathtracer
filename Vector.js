@@ -168,8 +168,8 @@ V.prototype.normalized = function () {
 	return mulf(this, 1 / length(this));
 }
 
-V.prototype.print = function (pre = "") {
-	console.log(pre + "<" + this.x + ", " + this.y + ", " + this.z + ">");
+V.prototype.string = function () {
+	return '(' + this.x.toFixed(2) + ", " + this.y.toFixed(2) + ", " + this.z.toFixed(2) + ")";
 }
 
 function frameMul(N, v) {

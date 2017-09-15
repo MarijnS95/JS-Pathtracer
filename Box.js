@@ -13,21 +13,15 @@ function Box(mi, ma, mtl) {
 };
 
 Box.prototype.intersect = function (r) {
-	// console.log(this);
-	// console.log(r.DI);
 	const ta = sub(this.min, r.O).mul(r.DI);
 	const tb = sub(this.max, r.O).mul(r.DI);
-	// console.log(ta, tb);
 	const tmin3 = min(ta, tb);
 	const tmax3 = max(ta, tb);
-	// console.log(tmin3, tmax3);
 	const minidx = tmin3.maxidx(),
 		maxidx = tmax3.minidx();
-	// console.log(minidx, maxidx);
 	let tmin = tmin3[minidx], tmax = tmax3[maxidx];
 	const inside = tmin < 0;
 	tmin = inside ? tmax : tmin;
-	// console.log(tmin);
 	if (tmin <= tmax && tmin > 0 && tmin < r.t) {
 		r.inside = inside;
 		r.i = this;
@@ -35,12 +29,8 @@ Box.prototype.intersect = function (r) {
 		r.I = mulf(r.D, tmin).add(r.O);
 		r.N = V.single(0);
 		r.N[inside ? maxidx : minidx] = 1;
-		// r.N *= inside ? -1 : 1;
-		// r.N *= (dot(sub(r.I, this.center), r.N) < 0) ? -1 : 1;
-		r.N.mulf((inside ? -1 : 1) * (dot(sub(r.I, this.center), r.N) < 0 ? -1 : 1));
-		// r.N *= (inside ? -1 : 1) *
-		// 	(dot(sub(r.I, this.center), r.N) < 0) ? -1 : 1;
-		// r.N.mul((inside ^ (dot(sub(r.I, this.center), r.N) < 0) ? -1 : 1));
+		if (inside ^ (dot(sub(r.I, this.center), r.N) < 0))
+			r.N.mulf(-1);
 	}
 };
 

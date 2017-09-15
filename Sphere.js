@@ -19,17 +19,13 @@ Sphere.prototype.intersect = function (r) {
 			const thc = Math.sqrt(this.R2 - d2);
 			const t0 = l - thc,
 				t1 = l + thc;
-			if (t0 > 0) {
-				if (t0 >= r.t)
-					return;
+			if (t0 > 0 && t0 < r.t) {
 				r.t = t0;
 				r.i = this;
 				r.I = mulf(r.D, t0).add(r.O);
 				r.N = sub(r.I, this.P).normalize();
 				r.inside = false;
-			} else {
-				if (t1 <= 0 || t1 >= r.t)
-					return;
+			} else if (t1 > 0 && t1 < r.t) {
 				r.t = t1;
 				r.i = this;
 				r.I = mulf(r.D, t1).add(r.O);

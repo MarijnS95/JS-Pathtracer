@@ -9,7 +9,6 @@
 		flex-direction: column;
 
 		font-family: sans-serif;
-		font-weight: bold;
 		font-size: 16;
 	}
 
@@ -17,8 +16,20 @@
 		background: #333;
 	}
 
+	.row {
+		padding: 2px;
+	}
+
 	#renderTime {
-		text-align: right;
+		position: relative;
+		float: right;
+		/* text-align: right; */
+	}
+
+	#log {
+		border: 1px lightgray dashed;
+		margin: 5px;
+		padding: 5px;
 	}
 </style>
 
@@ -37,9 +48,15 @@
 
 <body>
 	<div>
-		<button id="toggle">Start</button>
-		<div id="renderTime"></div>
+		<div class="row">
+			<button id="toggle">Start</button>
+			<div id="renderTime"></div>
+		</div>
 		<canvas width="512" height="512"></canvas>
+		<div class="row">
+			<span id="renderInfo"></span>
+			<div id="log"></div>
+		</div>
 	</div>
 </body>
 

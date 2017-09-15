@@ -16,9 +16,9 @@ function Material(diff, spec = 0, refr = 0) {
 		this.gloss = 0;
 		this.rIdx = 1;
 		this.tiled = false;
-		this.diffCol = V.single(0);
+		this.diffCol = V.single(1);
 		this.specCol = V.single(1);
-		this.absCol = V.single(1);
+		this.absCol = V.single(0);
 	}
 };
 

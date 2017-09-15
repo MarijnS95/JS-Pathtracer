@@ -15,7 +15,7 @@ function SampleSkydome(dir) {
 	const r = INVPI * Math.acos(dir.z) / Math.sqrt(dir.x * dir.x + dir.y * dir.y);
 	const x = (dir.x * r + 1) * 0.5,
 		y = 1 - (dir.y * r + 1) * 0.5;
-	const pos = (Math.floor(x * skydomeWidth) + Math.floor(y * skydomeHeight) * skydomeWidth) * 4;
+	const pos = ((x * skydomeWidth | 0) + (y * skydomeHeight | 0) * skydomeWidth) * 4;
 	return new V(skydome[pos], skydome[pos + 1], skydome[pos + 2]);
 }
 
@@ -60,14 +60,14 @@ function RayTrace(r) {
 				R = mulf(r.D, n).add(mulf(r.N, n * cosI - Math.sqrt(cos2T)));
 				n1 = n2;
 			} else {
-				R = frameMul(reflect(r.D, r.N), cosineHemSample(mtl.gloss));
+				R = cosineHemFrame(reflect(r.D, r.N), mtl.gloss);
 				color.mul(mtl.getSpecular(r));
 			}
 		} else if ((cmp += mtl.spec) > selector) {
-			R = frameMul(reflect(r.D, r.N), cosineHemSample(mtl.gloss));
+			R = cosineHemFrame(reflect(r.D, r.N), mtl.gloss);
 			color.mul(mtl.getSpecular(r));
 		} else if ((cmp += mtl.diff) > selector) {
-			R = frameMul(r.N, cosineHemSample(xor32()));
+			R = cosineHemFrame(r.N, xor32());
 			color.mul(mtl.getDiffuse(r));
 		} else {
 			color.set(0);
