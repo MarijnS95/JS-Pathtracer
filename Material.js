@@ -1,5 +1,5 @@
 function Material(diff, spec = 0, refr = 0) {
-	if (typeof diff != "number") {
+	if (typeof diff != 'number') {
 		this.diff = diff.diff;
 		this.spec = diff.spec;
 		this.refr = diff.refr;

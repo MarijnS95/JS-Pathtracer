@@ -21,13 +21,13 @@ function Camera(o, d, fov = 90) {
 		this.focalDistance = 1;
 		this.update();
 		this.traceFocalDistance(ctx.canvas.width / 2, ctx.canvas.height / 2);
-		ctx.canvas.addEventListener("mousemove", this.mouseEvent.bind(this));
-		ctx.canvas.addEventListener("mouseup", this.mouseEvent.bind(this));
-		window.addEventListener("contextmenu", (e) => {
+		ctx.canvas.addEventListener('mousemove', this.mouseEvent.bind(this));
+		ctx.canvas.addEventListener('mouseup', this.mouseEvent.bind(this));
+		window.addEventListener('contextmenu', (e) => {
 			e.preventDefault();
 		});
-		window.addEventListener("keydown", this.keyEvent.bind(this));
-		window.addEventListener("keyup", this.keyEvent.bind(this));
+		window.addEventListener('keydown', this.keyEvent.bind(this));
+		window.addEventListener('keyup', this.keyEvent.bind(this));
 	}
 };
 
@@ -45,7 +45,7 @@ Camera.prototype.getRay = function (x, y) {
 Camera.prototype.keyEvent = function (e) {
 	const speed = 0.4;
 	let changed = false;
-	if (e.type == "keydown") {
+	if (e.type == 'keydown') {
 		if (e.which == 87) {
 			this.O.add(mulf(this.D, speed));
 			changed = true;
@@ -112,7 +112,7 @@ Camera.prototype.traceFocalDistance = function (x, y, update = true) {
 	this.focalDistance = Math.min(100, dot(mulf(r.D, r.t), this.D));
 	if (isNaN(this.focalDistance))
 		this.focalDistance = 1;
-	console.log("Focal distance: ", this.focalDistance);
+	console.log('Focal distance: ', this.focalDistance);
 	if (update)
 		this.update();
 }
@@ -134,6 +134,6 @@ Camera.prototype.update = function () {
 	this.LeftRight.mulf(2 / ctx.canvas.width);
 	this.TopBottom.mulf(2 / ctx.canvas.height);
 	for (let worker of workers)
-		worker.postMessage({ type: "setCamera", camera: this });
+		worker.postMessage({ type: 'setCamera', camera: this });
 	shouldReset = true;
 };

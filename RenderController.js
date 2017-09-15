@@ -46,7 +46,7 @@ const lights = [];
 
 function workerMessage(e) {
 	switch (e.data.type) {
-		case "renderDone":
+		case 'renderDone':
 			renderDone();
 			break;
 	}
@@ -61,7 +61,7 @@ function render() {
 		imageData = ctx.createImageData(ctx.canvas.width, ctx.canvas.height);
 		for (let worker of workers)
 			worker.postMessage({
-				type: "setAccumulator",
+				type: 'setAccumulator',
 				accumulator: accumulator
 			});
 		shouldInitializeStorage = false;
@@ -82,7 +82,7 @@ function render() {
 	syncPoint.fill(0);
 	let xch = ctx.canvas.width / chunkWidth;
 	for (let worker of workers)
-		worker.postMessage({ type: "startRender", xChunks: xch, totalWork: xch * (ctx.canvas.height / chunkHeight), stride: ctx.canvas.width, rnd: numSamples * Math.random() * 0x7fff * 154323451 >>> 0 });
+		worker.postMessage({ type: 'startRender', xChunks: xch, totalWork: xch * (ctx.canvas.height / chunkHeight), stride: ctx.canvas.width, rnd: numSamples * Math.random() * 0x7fff * 154323451 >>> 0 });
 }
 function sat(f) {
 	f *= scale;
@@ -106,15 +106,15 @@ function renderDone() {
 	renderTime.textContent = 'Rendertime: ' + (end | 0) + 'ms; ' + (avgFps | 0) + 'fps';
 }
 
-addEventListener("load", function () {
+addEventListener('load', function () {
 	renderTimeText = document.querySelector('#renderTime');
 	renderInfo = document.querySelector('#renderInfo');
 	toggleButton = document.querySelector('#toggle');
 	logDiv = document.querySelector('#log');
 
 	loadSkydome();
-	let canvas = document.querySelector("canvas");
-	ctx = canvas.getContext("2d");
+	let canvas = document.querySelector('canvas');
+	ctx = canvas.getContext('2d');
 	syncPoint = new Uint32Array(new SharedArrayBuffer(Uint32Array.BYTES_PER_ELEMENT * 2));
 
 	for (let obj of objects)
@@ -122,19 +122,19 @@ addEventListener("load", function () {
 
 	log('Spawning ' + navigator.hardwareConcurrency + ' worker threads...');
 	for (let i = 0; i < navigator.hardwareConcurrency; i++) {
-		worker = new Worker("ChunkRenderer.js");
+		worker = new Worker('ChunkRenderer.js');
 		worker.onmessage = workerMessage;
 		worker.postMessage({
-			type: "setup",
+			type: 'setup',
 			objects: objects,
 			syncPoint: syncPoint
 		});
 		workers.push(worker);
 	}
-	log("Worker threads spawned!");
+	log('Worker threads spawned!');
 
 	camera = new Camera(V.single(0), new V(0, 0, 1));
-	toggleButton.addEventListener("click", toggleRendering);
+	toggleButton.addEventListener('click', toggleRendering);
 	canvas.onresize = function (e) {
 		shouldInitializeStorage = true;
 		camera.update();
@@ -143,7 +143,7 @@ addEventListener("load", function () {
 
 function setIsRendering(value) {
 	isRendering = value;
-	toggleButton.textContent = isRendering ? "Stop" : "Start";
+	toggleButton.textContent = isRendering ? 'Stop' : 'Start';
 	if (isRendering)
 		render();
 }
@@ -152,7 +152,7 @@ function toggleRendering() {
 	setIsRendering(!isRendering);
 }
 
-addEventListener("keypress", function (e) {
+addEventListener('keypress', function (e) {
 	if (e.which == 32)
 		toggleRendering();
 });
@@ -161,7 +161,7 @@ let skydomeWidth = 0, skydomeHeight = 0;
 
 function loadSkydome() {
 	log('Fetching skydome...');
-	fetch("Assets/uffizi_probe.float4")
+	fetch('Assets/uffizi_probe.float4')
 		.then(r => r.arrayBuffer())
 		.then(ab => {
 			const dv = new DataView(ab);
@@ -169,7 +169,7 @@ function loadSkydome() {
 			skydomeHeight = dv.getInt32(4, true);
 			skydome = new Float32Array(ab, 8, dv.byteLength / 4 - 2);
 			for (let worker of workers)
-				worker.postMessage({ type: "setSkydome", skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });
+				worker.postMessage({ type: 'setSkydome', skydomeWidth: skydomeWidth, skydomeHeight: skydomeHeight, skydome: skydome });
 			log('Skydome ready!');
 			shouldReset = true;
 		});

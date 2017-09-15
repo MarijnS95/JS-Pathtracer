@@ -169,7 +169,7 @@ V.prototype.normalized = function () {
 }
 
 V.prototype.string = function () {
-	return '(' + this.x.toFixed(2) + ", " + this.y.toFixed(2) + ", " + this.z.toFixed(2) + ")";
+	return '(' + this.x.toFixed(2) + ', ' + this.y.toFixed(2) + ', ' + this.z.toFixed(2) + ')';
 }
 
 function frameMul(N, v) {

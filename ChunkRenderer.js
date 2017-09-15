@@ -1,5 +1,5 @@
 //initialize
-importScripts("Shared.js", "Vector.js", "Material.js", "Sphere.js", "Plane.js", "Box.js", "Camera.js", "Ray.js", "Light.js");
+importScripts('Shared.js', 'Vector.js', 'Material.js', 'Sphere.js', 'Plane.js', 'Box.js', 'Camera.js', 'Ray.js', 'Light.js');
 
 //script running in a web worker
 let objects = [];
@@ -94,9 +94,9 @@ function renderChunk(x, y, stride) {
 		}
 }
 
-addEventListener("message", function (e) {
+addEventListener('message', function (e) {
 	switch (e.data.type) {
-		case "startRender":
+		case 'startRender':
 			seed = (e.data.rnd + 1/*threadidx*/) * 124737421 | 0;
 			while ((chunkIdx = Atomics.add(syncPoint, 0, 1)) < e.data.totalWork) {
 				const x = (chunkIdx % e.data.xChunks) | 0,
@@ -104,7 +104,7 @@ addEventListener("message", function (e) {
 				renderChunk(x, y, e.data.stride);
 				const chunksDone = Atomics.add(syncPoint, 1, 1);
 				if (chunksDone == e.data.totalWork - 1)
-					postMessage({ type: "renderDone" });
+					postMessage({ type: 'renderDone' });
 			}
 			break;
 		case 'setup':
@@ -126,13 +126,13 @@ addEventListener("message", function (e) {
 			}
 			syncPoint = e.data.syncPoint;
 			break;
-		case "setCamera":
+		case 'setCamera':
 			camera = new Camera(e.data.camera);
 			break;
-		case "setAccumulator":
+		case 'setAccumulator':
 			accumulator = e.data.accumulator;
 			break;
-		case "setSkydome":
+		case 'setSkydome':
 			skydome = e.data.skydome;
 			skydomeWidth = e.data.skydomeWidth;
 			skydomeHeight = e.data.skydomeHeight;
