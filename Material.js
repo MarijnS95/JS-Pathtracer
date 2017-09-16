@@ -1,24 +1,24 @@
-function Material(diff, spec = 0, refr = 0) {
-	if (typeof diff != 'number') {
-		this.diff = diff.diff;
-		this.spec = diff.spec;
-		this.refr = diff.refr;
-		this.gloss = diff.gloss;
-		this.rIdx = diff.rIdx;
-		this.tiled = diff.tiled;
-		this.diffCol = V.copy(diff.diffCol);
-		this.specCol = V.copy(diff.specCol);
-		this.absCol = V.copy(diff.absCol);
+function Material(diffuse, specular = 0, refraction = 0) {
+	if (typeof diffuse != 'number') {
+		this.diffuse = diffuse.diffuse;
+		this.specular = diffuse.specular;
+		this.refraction = diffuse.refraction;
+		this.glossiness = diffuse.glossiness;
+		this.refractionIndex = diffuse.refractionIndex;
+		this.tiled = diffuse.tiled;
+		this.diffuseColor = V.copy(diffuse.diffuseColor);
+		this.specularColor = V.copy(diffuse.specularColor);
+		this.absorptionColor = V.copy(diffuse.absorptionColor);
 	} else {
-		this.diff = diff;
-		this.spec = spec;
-		this.refr = refr;
-		this.gloss = 0;
-		this.rIdx = 1;
+		this.diffuse = diffuse;
+		this.specular = specular;
+		this.refraction = refraction;
+		this.glossiness = 0;
+		this.refractionIndex = 1;
 		this.tiled = false;
-		this.diffCol = V.single(1);
-		this.specCol = V.single(1);
-		this.absCol = V.single(0);
+		this.diffuseColor = V.single(1);
+		this.specularColor = V.single(1);
+		this.absorptionColor = V.single(0);
 	}
 };
 
@@ -30,14 +30,14 @@ Material.prototype.tileStrength = function (r) {
 
 Material.prototype.getDiffuse = function (r) {
 	if (this.tiled)
-		return mulf(this.diffCol, this.tileStrength(r));
+		return mulf(this.diffuseColor, this.tileStrength(r));
 	else
-		return this.diffCol;
+		return this.diffuseColor;
 };
 
 Material.prototype.getSpecular = function (r) {
 	if (this.tiled)
-		return mulf(this.specCol, this.tileStrength(r));
+		return mulf(this.specularColor, this.tileStrength(r));
 	else
-		return this.specCol;
+		return this.specularColor;
 };

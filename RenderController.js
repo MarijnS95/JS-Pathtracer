@@ -20,24 +20,24 @@ let shouldInitializeStorage = true;
 
 const floor = new Material(0.4, 0.6);
 floor.tiled = true;
-floor.gloss = 0.0001;
-floor.diffCol = V.single(0.7);
-floor.specCol = V.single(0.7);
+floor.glossiness = 0.0001;
+floor.diffuseColor = V.single(0.7);
+floor.specularColor = V.single(0.7);
 
-const yellowDiffuse = new Material(1);
-yellowDiffuse.diffCol = new V(1, 1, 0);
+const yellowdiffuse = new Material(1);
+yellowdiffuse.diffuseColor = new V(1, 1, 0);
 
 const redRefr = new Material(0, 0, 1);
-redRefr.absCol = new V(.2, .93, .93).mulf(2.5);
-redRefr.rIdx = 1.5;
+redRefr.absorptionColor = new V(.2, .93, .93).mulf(2.5);
+redRefr.refractionIndex = 1.5;
 
 const blueTransparent = new Material(0, 0, 1);
-blueTransparent.absCol = new V(.93, .93, .2).mulf(2.5);
+blueTransparent.absorptionColor = new V(.93, .93, .2).mulf(2.5);
 
 const objects = [
 	new Plane(-1, new V(0, 1, 0), floor),
 	new Sphere(new V(-1, 0, 4), 0.32, new Material(0, 1)),
-	new Sphere(new V(1, 0, 4), 0.32, yellowDiffuse),
+	new Sphere(new V(1, 0, 4), 0.32, yellowdiffuse),
 	new Sphere(new V(0, 0, 2.8), 0.32, redRefr),
 	new Box(new V(-2, -.5, 2), new V(-1, .5, 3), blueTransparent),
 ];

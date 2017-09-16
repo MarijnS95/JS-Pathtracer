@@ -34,20 +34,20 @@ function RayTrace(r) {
 		const mtl = r.i.mtl;
 
 		if (camera.maxDepth == 1) //TODO
-			return mulf(mtl.getDiffuse(r), mtl.diff).add(mulf(mtl.specCol, mtl.spec));
+			return mulf(mtl.getDiffuse(r), mtl.diffuse).add(mulf(mtl.specularColor, mtl.specular));
 
 		if (r.inside)
-			color.mul(exp(mulf(mtl.absCol, -r.t)));
+			color.mul(exp(mulf(mtl.absorptionColor, -r.t)));
 
 		const selector = xor32();
-		let cmp = mtl.refr;
+		let cmp = mtl.refraction;
 		let R = null;
 
 		if (cmp > selector) {
 			// In case the camera is already inside an object (because the above n1 = 1 assumes the camera is in air):
 			if (r.inside && depth == 0)
-				n1 = mat.rIdx;
-			const n2 = r.inside ? 1 : mtl.rIdx;
+				n1 = mat.refractionIndex;
+			const n2 = r.inside ? 1 : mtl.refractionIndex;
 			const n = n1 / n2;
 
 			const cosI = -dot(r.N, r.D);
@@ -60,13 +60,13 @@ function RayTrace(r) {
 				R = mulf(r.D, n).add(mulf(r.N, n * cosI - Math.sqrt(cos2T)));
 				n1 = n2;
 			} else {
-				R = cosineHemFrame(reflect(r.D, r.N), mtl.gloss);
+				R = cosineHemFrame(reflect(r.D, r.N), mtl.glossiness);
 				color.mul(mtl.getSpecular(r));
 			}
-		} else if ((cmp += mtl.spec) > selector) {
-			R = cosineHemFrame(reflect(r.D, r.N), mtl.gloss);
+		} else if ((cmp += mtl.specular) > selector) {
+			R = cosineHemFrame(reflect(r.D, r.N), mtl.glossiness);
 			color.mul(mtl.getSpecular(r));
-		} else if ((cmp += mtl.diff) > selector) {
+		} else if ((cmp += mtl.diffuse) > selector) {
 			R = cosineHemFrame(r.N, xor32());
 			color.mul(mtl.getDiffuse(r));
 		} else {

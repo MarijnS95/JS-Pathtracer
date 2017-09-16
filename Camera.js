@@ -3,11 +3,11 @@ const realMaxDepth = 8;
 function Camera(o, d, fov = 90) {
 	if (d == null) {
 		this.O = V.copy(o.O);
-		this.tl = V.copy(o.tl);
+		this.topLeft = V.copy(o.topLeft);
 		this.right = V.copy(o.right);
 		this.down = V.copy(o.down);
-		this.TopBottom = V.copy(o.TopBottom);
-		this.LeftRight = V.copy(o.LeftRight);
+		this.topBottom = V.copy(o.topBottom);
+		this.leftRight = V.copy(o.leftRight);
 
 		this.lensSize = o.lensSize;
 		this.focalDistance = o.focalDistance;
@@ -37,7 +37,7 @@ Camera.prototype.getRay = function (x, y) {
 	const lensx = xor32() - .5;
 	const lensy = xor32() - .5;
 	const lensPos = mulf(this.right, lensx).add(mulf(this.down, lensy)).mulf(this.lensSize);
-	const d = mulf(this.LeftRight, x).add(mulf(this.TopBottom, y)).add(this.tl).sub(lensPos);
+	const d = mulf(this.leftRight, x).add(mulf(this.topBottom, y)).add(this.topLeft).sub(lensPos);
 	const r = new Ray(lensPos.add(this.O), d.normalize());
 	return r;
 };
@@ -85,7 +85,6 @@ Camera.prototype.keyEvent = function (e) {
 
 Camera.prototype.mouseEvent = function (e) {
 	let changed = false;
-	console.log(e.button, e.buttons);
 	if (e.buttons & 1) {
 		this.D.sub(mulf(this.right, e.movementX * 0.001)).add(mulf(this.up, e.movementY * 0.005)).normalize();
 		changed = true;
@@ -121,18 +120,18 @@ Camera.prototype.update = function () {
 	this.up = new V(0, 1, 0);
 	this.right = cross(this.up, this.D);
 	this.down = cross(this.right, this.D);
-	this.LeftRight = mulf(this.right, this.fov * this.focalDistance);
-	this.TopBottom = mulf(this.down, this.fov * this.focalDistance);
+	this.leftRight = mulf(this.right, this.fov * this.focalDistance);
+	this.topBottom = mulf(this.down, this.fov * this.focalDistance);
 
 	const ar = ctx.canvas.width / ctx.canvas.height;
 	if (ar > 1)
-		this.LeftRight.mulf(ar);
+		this.leftRight.mulf(ar);
 	else
-		this.TopBottom.mulf(1 / ar);
-	this.tl = mulf(this.D, this.focalDistance).sub(add(this.LeftRight, this.TopBottom));
+		this.topBottom.mulf(1 / ar);
+	this.topLeft = mulf(this.D, this.focalDistance).sub(add(this.leftRight, this.topBottom));
 
-	this.LeftRight.mulf(2 / ctx.canvas.width);
-	this.TopBottom.mulf(2 / ctx.canvas.height);
+	this.leftRight.mulf(2 / ctx.canvas.width);
+	this.topBottom.mulf(2 / ctx.canvas.height);
 	for (let worker of workers)
 		worker.postMessage({ type: 'setCamera', camera: this });
 	shouldReset = true;
