@@ -86,11 +86,14 @@ function render() {
 }
 function sat(f) {
 	f *= scale;
-	return (f > 1 ? 1 : (f < 0 ? 0 : Math.sqrt(f))) * 255;
+	if (f <= 0)
+		return 0;
+	if (f >= 1)
+		return 255;
+	return Math.sqrt(f) * 255;
 }
 
 function renderDone() {
-	ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 	for (let i = 0; i < ctx.canvas.width * ctx.canvas.height; i++) {
 		imageData.data[i * 4] = sat(accumulator[i * 3]);
 		imageData.data[i * 4 + 1] = sat(accumulator[i * 3 + 1]);

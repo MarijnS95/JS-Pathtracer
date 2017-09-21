@@ -79,19 +79,22 @@ function RayTrace(r) {
 }
 
 function renderChunk(x, y, stride) {
-	//http://stackoverflow.com/a/31265419/2844473
-	//my plans exactly
-
-	// NEW INF! ALMOST: https://bugs.chromium.org/p/chromium/issues/detail?id=563816
-	for (let xc = 0; xc < chunkWidth; xc++)
-		for (let yc = 0; yc < chunkHeight; yc++) {
-			const base = 3 * (x * chunkWidth + xc + stride * (y * chunkHeight + yc));
-			const r = camera.getRay(x * chunkWidth + xc, y * chunkHeight + yc);
+	// Future: Use OffscreenCanvas (bitmaprenderer). Not in chrome yet: https://bugs.chromium.org/p/chromium/issues/detail?id=563816
+	// However, we need to share the canvas with MULTIPLE workers SIMULTANEOUSLY. Not sure if that's possible.
+	const chunkX = x * chunkWidth;
+	const chunkY = y * chunkHeight;
+	let chunkBase = chunkX + stride * chunkY;
+	for (let yc = 0; yc < chunkHeight; yc++) {
+		for (let xc = 0; xc < chunkWidth; xc++) {
+			const base = 3 * (chunkBase + xc);
+			const r = camera.getRay(chunkX + xc, chunkY + yc);
 			const c = RayTrace(r);
 			accumulator[base] += c.x;
 			accumulator[base + 1] += c.y;
 			accumulator[base + 2] += c.z;
 		}
+		chunkBase += stride;
+	}
 }
 
 addEventListener('message', function (e) {
