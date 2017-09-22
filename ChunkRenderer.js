@@ -53,13 +53,17 @@ function RayTrace(r) {
 			const cosI = -dot(r.N, r.D);
 			const sin2I = 1 - cosI * cosI;
 			const cos2T = 1 - n * n * sin2I;
-			let R0 = (n1 - n2) / (n1 + n2);
-			R0 *= R0;
-			const Fr = R0 + (1 - R0) * Math.pow(1 - cosI, 5);
+
+			// Fresnel equation:
+			let f0 = (n1 - n2) / (n1 + n2);
+			f0 *= f0;
+			const Fr = f0 + (1 - f0) * Math.pow(1 - cosI, 5);
 			if (cos2T > 0 && Fr < xor32()) {
 				R = mulf(r.D, n).add(mulf(r.N, n * cosI - Math.sqrt(cos2T)));
 				n1 = n2;
 			} else {
+				// IDEA: Here, it's possible for a diffuse or specular reflection to happen.
+				// TODO: mtl.glossiness should be randomized, because right now it would be sampling in that radius around the normal, not on the entire 'circle' determined by the glossiness.
 				R = cosineHemFrame(reflect(r.D, r.N), mtl.glossiness);
 				color.mul(mtl.getSpecular(r));
 			}

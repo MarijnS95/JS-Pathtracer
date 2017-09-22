@@ -13,6 +13,14 @@ function Material(diffuse, specular = 0, refraction = 0) {
 		this.diffuse = diffuse;
 		this.specular = specular;
 		this.refraction = refraction;
+		if (Math.abs(this.diffuse + this.specular + this.refraction - 1) > .01)
+			// Sum of all probabilities should be 1. Lower than that and the result has cases where no interaction happens (a black pixel is emitted). Higher means the last selector(s) (in the order of transmission, specular, diffuse) will have a lower or maybe even 0 probability of being called/applied.
+			console.warn("Light interaction probabilties for", this, "do not sum to 1. Resulting render may be incorrect.");
+
+		// Also, reflection is a bit weird, since this is one thing. It can be a perfect (specular) reflection, a completely random (diffuse) reflection (Where the light has scattered through the material), or something inbetween (called glossiness).
+		// Here, we keep them separate to apply the colors correctly, and because randomizing a reflected ray causes different results than randomizing the surface normal.
+		// So, a diffuse reflection is random by definition, but a specular reflection (where the light has not interacted with the material) can be in a randomized direction as well, when the surface is irregular.
+
 		this.glossiness = 0;
 		this.refractionIndex = 1;
 		this.tiled = false;
