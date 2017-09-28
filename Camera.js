@@ -91,7 +91,7 @@ Camera.prototype.mouseEvent = function (e) {
 	}
 
 	if (e.buttons & 2) {
-		this.O.sub(mulf(this.right, e.movementX * 0.04)).add(mulf(this.up, e.movementY * 0.04));
+		this.O.sub(mulf(this.right, e.movementX * 0.04)).sub(mulf(this.down, e.movementY * 0.04));
 		changed = true;
 	}
 
