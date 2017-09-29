@@ -1,4 +1,5 @@
 const realMaxDepth = 8;
+const world_up = new V(0, 1, 0);
 
 function Camera(o, d, fov = 90) {
 	if (d == null) {
@@ -63,10 +64,10 @@ Camera.prototype.keyEvent = function (e) {
 		}
 
 		if (e.which == 81) {
-			this.O.add(mulf(this.up, speed));
+			this.O.add(mulf(world_up, speed));
 			changed = true;
 		} else if (e.which == 90) {
-			this.O.add(mulf(this.up, -speed));
+			this.O.add(mulf(world_up, -speed));
 			changed = true;
 		}
 
@@ -86,7 +87,7 @@ Camera.prototype.keyEvent = function (e) {
 Camera.prototype.mouseEvent = function (e) {
 	let changed = false;
 	if (e.buttons & 1) {
-		this.D.sub(mulf(this.right, e.movementX * 0.001)).add(mulf(this.up, e.movementY * 0.005)).normalize();
+		this.D.sub(mulf(this.right, e.movementX * 0.001)).add(mulf(world_up, e.movementY * 0.005)).normalize();
 		changed = true;
 	}
 
@@ -99,10 +100,12 @@ Camera.prototype.mouseEvent = function (e) {
 		this.traceFocalDistance(e.offsetX, e.offsetY, false);
 		changed = true;
 	}
-	//this.maxDepth = changed ? 1 : realMaxDepth;
-	if (changed)
+
+	this.maxDepth = changed && e.type != 'mouseup' ? 1 : realMaxDepth;
+	if (changed || e.type == 'mouseup') {
 		this.update();
-	e.preventDefault();
+		e.preventDefault();
+	}
 }
 
 Camera.prototype.traceFocalDistance = function (x, y, update = true) {
@@ -117,8 +120,7 @@ Camera.prototype.traceFocalDistance = function (x, y, update = true) {
 }
 
 Camera.prototype.update = function () {
-	this.up = new V(0, 1, 0);
-	this.right = cross(this.up, this.D);
+	this.right = cross(world_up, this.D);
 	this.down = cross(this.right, this.D);
 	this.leftRight = mulf(this.right, this.fov * this.focalDistance);
 	this.topBottom = mulf(this.down, this.fov * this.focalDistance);
