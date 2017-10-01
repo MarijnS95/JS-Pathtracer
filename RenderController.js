@@ -32,7 +32,8 @@ redRefr.absorptionColor = new V(.2, .93, .93).mulf(2.5);
 redRefr.refractionIndex = 1.5;
 
 const blueTransparent = new Material(0, 0, 1);
-blueTransparent.absorptionColor = new V(.93, .93, .2).mulf(2.5);
+blueTransparent.glossiness = 0.005;
+blueTransparent.absorptionColor = new V(.93, .93, .2).mulf(3.5);
 
 const objects = [
 	new Plane(-1, new V(0, 1, 0), floor),

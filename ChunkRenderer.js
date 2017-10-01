@@ -59,7 +59,9 @@ function RayTrace(r) {
 			f0 *= f0;
 			const Fr = f0 + (1 - f0) * Math.pow(1 - cosI, 5);
 			if (cos2T > 0 && Fr < xor32()) {
-				R = mulf(r.D, n).add(mulf(r.N, n * cosI - Math.sqrt(cos2T)));
+				R = cosineHemFrame(
+					mulf(r.D, n).add(mulf(r.N, n * cosI - Math.sqrt(cos2T))),
+					mtl.glossiness);
 				n1 = n2;
 			} else {
 				// IDEA: Here, it's possible for a diffuse or specular reflection to happen.
