@@ -159,13 +159,19 @@ V.prototype.maxidx = function () {
 
 V.prototype.normalize = function () {
 	// Normalizes the current vector and returns it for chaining.
-	this.mulf(1 / length(this));
+	const l = length(this);
+	if (!l)
+		return this;
+	this.mulf(1 / l);
 	return this;
 }
 
 V.prototype.normalized = function () {
 	// Returns a new vector that is normalized.
-	return mulf(this, 1 / length(this));
+	const l = length(this);
+	if (!l)
+		return this;
+	return mulf(this, 1 / l);
 }
 
 V.prototype.string = function () {
