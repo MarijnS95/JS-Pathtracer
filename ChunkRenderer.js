@@ -33,11 +33,11 @@ function RayTrace(r) {
 
 		const mtl = r.i.mtl;
 
-		if (camera.maxDepth == 1) //TODO
+		if (camera.maxDepth == 1)
 			return mulf(mtl.getDiffuse(r), mtl.diffuse)
 				.add(mulf(mtl.specularColor, mtl.specular))
-				.add(V.single(1).normalized()
-					.sub(mtl.absorptionColor.normalized())
+				.add(V.single(1)
+					.sub(mtl.absorptionColor.normalize(Math.sqrt(3)))
 					.mulf(mtl.refraction));
 
 		if (r.inside)

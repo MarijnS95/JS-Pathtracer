@@ -38,10 +38,6 @@ function fdiv(f, v) {
 	return new V(f / v.x, f / v.y, f / v.z);
 }
 
-function normalize(v) {
-	return mulf(v, 1 / length(v));
-}
-
 function length(v) {
 	return Math.sqrt(dot(v, v));
 }
@@ -157,21 +153,21 @@ V.prototype.maxidx = function () {
 		return this.x > this.z ? 'x' : 'z';
 }
 
-V.prototype.normalize = function () {
+V.prototype.normalize = function (L = 1) {
 	// Normalizes the current vector and returns it for chaining.
 	const l = length(this);
 	if (!l)
 		return this;
-	this.mulf(1 / l);
+	this.mulf(L / l);
 	return this;
 }
 
-V.prototype.normalized = function () {
+V.prototype.normalized = function (L = 1) {
 	// Returns a new vector that is normalized.
 	const l = length(this);
 	if (!l)
 		return this;
-	return mulf(this, 1 / l);
+	return mulf(this, L / l);
 }
 
 V.prototype.string = function () {
