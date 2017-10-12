@@ -1,5 +1,6 @@
 //initialize
-importScripts('Shared.js', 'Vector.js', 'Material.js', 'Sphere.js', 'Plane.js', 'Box.js', 'Camera.js', 'Ray.js', 'Light.js');
+importScripts('Shared.js', 'Vector.js', 'AsmVector.js', 'Material.js', 'Sphere.js', 'Plane.js', 'Box.js', 'Camera.js', 'Ray.js', 'Light.js');
+
 
 //script running in a web worker
 let objects = [];
