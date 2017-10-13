@@ -68,7 +68,6 @@ Sphere.prototype.intersect = function (r) {
 			}
 		}
 	}
-	// vectorAsm.PopCnt(3);
 	vectorAsm.Pop();
 };
 

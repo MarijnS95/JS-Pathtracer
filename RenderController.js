@@ -116,7 +116,7 @@ addEventListener('load', function () {
 	toggleButton = document.querySelector('#toggle');
 	logDiv = document.querySelector('#log');
 
-	// loadSkydome();
+	loadSkydome();
 	let canvas = document.querySelector('canvas');
 	ctx = canvas.getContext('2d');
 	try {

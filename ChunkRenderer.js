@@ -10,41 +10,116 @@ let skydome = null, skydomeWidth = 0, skydomeHeight = 0;
 let accumulator = null;
 let syncPoint = null;
 
-function SampleSkydome(dir) {
-	if (skydome == null)
-		return dir;
-	const r = INVPI * Math.acos(dir.z) / Math.sqrt(dir.x * dir.x + dir.y * dir.y);
-	const x = (dir.x * r + 1) * 0.5,
-		y = 1 - (dir.y * r + 1) * 0.5;
-	const pos = ((x * skydomeWidth | 0) + (y * skydomeHeight | 0) * skydomeWidth) * 4;
-	return new V(skydome[pos], skydome[pos + 1], skydome[pos + 2]);
+function TracerModule(stdlib, vectorAsm, heap) {
+	"use asm";
+
+	const acos = stdlib.Math.acos;
+	const sqrt = stdlib.Math.sqrt;
+	const imul = stdlib.Math.imul;
+	const fround = stdlib.Math.fround;
+	const floor = stdlib.Math.floor;
+	const PI = stdlib.Math.PI;
+
+	var INVPI = fround(0);
+
+	const f32 = new stdlib.Float32Array(heap);
+
+	function init() {
+		INVPI = fround(fround(1) / fround(PI));
+	}
+
+	function SampleSkydome(dir, skydomeWidth, skydomeHeight) {
+		dir = dir | 0;
+		skydomeWidth = fround(skydomeWidth);
+		skydomeHeight = fround(skydomeHeight);
+
+		var r = fround(0);
+		var x = fround(0);
+		var y = fround(0);
+		var z = fround(0);
+
+		var ix = 0;
+		var iy = 0;
+
+		x = fround(f32[dir >> 2]);
+		y = fround(f32[dir + 4 >> 2]);
+		z = fround(f32[dir + 8 >> 2]);
+
+		r = fround(
+			fround(INVPI * fround(acos(+z))) /
+			fround(sqrt(
+				fround(fround(x * x) + fround(y * y))
+			))
+		);
+
+		x = fround(fround(x * r) + fround(1));
+		x = fround(x * fround(0.5));
+
+		y = fround(fround(y * r) + fround(1));
+		y = fround(fround(1) - fround(y * fround(0.5)));
+
+		ix = ~~floor(+fround(x * skydomeWidth));
+		iy = ~~floor(+fround(y * skydomeHeight));
+		iy = imul(iy, ~~floor(+skydomeWidth));
+		return imul((ix + iy) | 0, 4 | 0) | 0;
+	}
+
+	return {
+		init: init,
+		SampleSkydome: SampleSkydome
+	};
 }
 
-function RayTrace(r) {
-	let color = V.single(1);
+const tracerModule = TracerModule(self, vectorAsm, asmHeap);
+tracerModule.init();
+
+function SampleSkydome(dest, dir) {
+	if (skydome == null) {
+		vectorAsm.Mov(dest, dir);
+	} else {
+		const pos = tracerModule.SampleSkydome(dir, skydomeWidth, skydomeHeight);
+		vectorAsm.V(dest, skydome[pos], skydome[pos + 1], skydome[pos + 2]);
+	}
+}
+
+function RayTrace(r, color) {
+	const R = vectorAsm.AllocNext();
 	let n1 = 1;
 	for (let depth = 0; ; depth++) {
-		if (depth >= camera.maxDepth)
-			return V.single(0);
+		if (depth >= camera.maxDepth) {
+			// return V.single(0);
+			vectorAsm.VS(color, 0);
+			break;
+		}
 		intersect(r);
 
-		const rD = VectorAsmGetV(r.D);
-
 		if (r.i == null) {
-			color.mul(SampleSkydome(rD));
+			SampleSkydome(color, r.D);
 			break;
 		}
 
-		const rN = VectorAsmGetV(r.N);
-
 		const mtl = r.i.mtl;
 
-		if (camera.maxDepth == 1)
-			return mulf(mtl.getDiffuse(r), mtl.diffuse)
-				.add(mulf(mtl.specularColor, mtl.specular))
-				.add(V.single(1)
-					.sub(mtl.absorptionColor.normalize(Math.sqrt(3)))
-					.mulf(mtl.refraction));
+		if (camera.maxDepth == 1) {
+			const d = VectorAsmPushV(mtl.getDiffuse(r));
+			vectorAsm.MulF(d, mtl.diffuse);
+			vectorAsm.Mov(color, d);
+
+			VectorAsmMovV(d, mtl.specularColor);
+			vectorAsm.MulF(d, mtl.specular);
+			vectorAsm.Add(color, d);
+
+			VectorAsmMovV(d, mtl.absorptionColor);
+			vectorAsm.NormF(d, Math.sqrt(3));
+			vectorAsm.FSub(d, 1);
+			vectorAsm.MulF(d, mtl.refraction);
+			vectorAsm.Add(color, d);
+			vectorAsm.Pop();
+			break;
+		}
+
+		vectorAsm.V(color, 1, 0, 1);
+		break;
 
 		if (r.inside)
 			color.mul(exp(mulf(mtl.absorptionColor, -r.t)));
@@ -91,7 +166,7 @@ function RayTrace(r) {
 		}
 		r.nextRay(R.normalize());
 	}
-	return color;
+	vectorAsm.Pop();
 }
 
 function renderChunk(x, y, stride) {
@@ -104,11 +179,17 @@ function renderChunk(x, y, stride) {
 		for (let xc = 0; xc < chunkWidth; xc++) {
 			const base = 3 * (chunkBase + xc);
 			const r = camera.getRay(chunkX + xc, chunkY + yc);
-			const c = RayTrace(r);
+			const c = vectorAsm.PushF(0);
+			RayTrace(r, c);
 			r.pop();
-			accumulator[base] += c.x;
-			accumulator[base + 1] += c.y;
-			accumulator[base + 2] += c.z;
+
+			accumulator[base] += asmFHeap[c >> 2];
+			accumulator[base + 1] += asmFHeap[c + 4 >> 2];
+			accumulator[base + 2] += asmFHeap[c + 8 >> 2];
+			// accumulator[base] += c.x;
+			// accumulator[base + 1] += c.y;
+			// accumulator[base + 2] += c.z;
+			vectorAsm.Pop();
 		}
 		chunkBase += stride;
 	}

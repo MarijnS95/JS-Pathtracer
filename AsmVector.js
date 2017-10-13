@@ -1,17 +1,17 @@
 function VectorAsmModule(stdlib, foreign, heap) {
 	"use asm";
 
-	var fround = stdlib.Math.fround;
-	var sqrt = stdlib.Math.sqrt;
-	// var sin = stdlib.Math.sin;
-	// var cos = stdlib.Math.cos;
-	// var atan2 = stdlib.Math.atan2;
-	var exp = stdlib.Math.exp;
-	var imul = stdlib.Math.imul;
+	const fround = stdlib.Math.fround;
+	const sqrt = stdlib.Math.sqrt;
+	// const sin = stdlib.Math.sin;
+	// const cos = stdlib.Math.cos;
+	// const atan2 = stdlib.Math.atan2;
+	const exp = stdlib.Math.exp;
+	const imul = stdlib.Math.imul;
 
-	var f32 = new stdlib.Float32Array(heap);
+	const f32 = new stdlib.Float32Array(heap);
 
-	var vectorSize = 12;
+	const vectorSize = 12;
 	var stackBase = 0;
 	var heapSize = 0;
 	var vZero = 0;
@@ -97,7 +97,7 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		return AllocNext() | 0;
 	}
 
-	function PushS(f) {
+	function PushF(f) {
 		f = fround(f);
 
 		V(stackBase, f, f, f);
@@ -328,13 +328,21 @@ function VectorAsmModule(stdlib, foreign, heap) {
 			fround(fround(lx * ry) - fround(ly * rx)));
 	}
 
-	function Norm(dest) {
+	function NormF(dest, f) {
 		dest = dest | 0;
+		f = fround(f);
 
 		var l = fround(0);
 		l = fround(Length(dest));
 
-		MulF(dest, fround(fround(1) / l));
+		if (l > fround(0))
+			MulF(dest, fround(f / l));
+	}
+
+	function Norm(dest) {
+		dest = dest | 0;
+
+		NormF(dest, fround(1));
 	}
 
 	return {
@@ -342,9 +350,11 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		V: V,
 		VS: VS,
 		Mov: Mov,
+		AllocNext: AllocNext,
 		Pop: Pop,
 		PopCnt: PopCnt,
 		Push: Push,
+		PushF: PushF,
 		Dup: Dup,
 		Add: Add,
 		AddF: AddF,
@@ -366,7 +376,8 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		Length: Length,
 		Dot: Dot,
 		Cross: Cross,
-		Norm: Norm
+		NormF: NormF,
+		Norm: Norm,
 	};
 }
 
