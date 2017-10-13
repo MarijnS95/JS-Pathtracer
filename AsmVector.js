@@ -124,6 +124,16 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		return AllocNext() | 0;
 	}
 
+	function Neg(dest) {
+		dest = dest | 0;
+
+		V(
+			dest,
+			fround(-f32[dest >> 2]),
+			fround(-f32[dest + 4 >> 2]),
+			fround(-f32[dest + 8 >> 2]));
+	}
+
 	function Add(dest, src) {
 		dest = dest | 0;
 		src = src | 0;
@@ -494,6 +504,7 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		Push: Push,
 		PushF: PushF,
 		Dup: Dup,
+		Neg: Neg,
 		Add: Add,
 		AddF: AddF,
 		AddXYZ: AddXYZ,

@@ -213,9 +213,6 @@ function renderChunk(x, y, stride) {
 			accumulator[base] += asmFHeap[c >> 2];
 			accumulator[base + 1] += asmFHeap[c + 4 >> 2];
 			accumulator[base + 2] += asmFHeap[c + 8 >> 2];
-			// accumulator[base] += c.x;
-			// accumulator[base + 1] += c.y;
-			// accumulator[base + 2] += c.z;
 			vectorAsm.Pop();
 		}
 		chunkBase += stride;
@@ -242,9 +239,9 @@ addEventListener('message', function (e) {
 					case 'Sphere':
 						obj = new Sphere(obj);
 						break;
-					// case 'Plane':
-					// 	obj = new Plane(obj);
-					// 	break;
+					case 'Plane':
+						obj = new Plane(obj);
+						break;
 					// case 'Box':
 					// 	obj = new Box(obj);
 					// 	break;
