@@ -16,15 +16,15 @@ function Sphere(p, r2, mtl) {
 
 Sphere.prototype.intersect = function (r) {
 	// DEBUG for now until rays are converted to ASM
-	const o = VectorAsmPushV(r.O);
-	const d = VectorAsmPushV(r.D);
+	// const o = VectorAsmPushV(r.O);
+	// const d = VectorAsmPushV(r.D);
 
 	// const L = sub(this.P, r.O);
-	const L = vectorAsm.PushV(this.P);
-	vectorAsm.Sub(L, o);
+	const L = vectorAsm.Dup(this.P);
+	vectorAsm.Sub(L, r.O);
 
 	// const l = dot(L, r.D);
-	const l = vectorAsm.Dot(L, d);
+	const l = vectorAsm.Dot(L, r.D);
 
 	if (l > 0) {
 		// const d2 = dot(L, L) - l * l;
@@ -34,20 +34,20 @@ Sphere.prototype.intersect = function (r) {
 			const thc = Math.sqrt(this.R2 - d2);
 			const t0 = l - thc,
 				t1 = l + thc;
+
 			if (t0 > 0 && t0 < r.t) {
 				r.t = t0;
 				r.i = this;
 
 				// r.I = mulf(r.D, t0).add(r.O);
-				// We don't need d anymore, so we can write over it:
-				vectorAsm.MulF(d, t0);
-				vectorAsm.Add(d, o);
-				r.I = VectorAsmGetV(d);
+				vectorAsm.Mov(r.I, r.D);
+				vectorAsm.MulF(r.I, t0);
+				vectorAsm.Add(r.I, r.O);
 
 				// r.N = sub(r.I, this.P).normalize();
-				vectorAsm.Sub(d, this.P);
-				vectorAsm.Norm(d);
-				r.N = VectorAsmGetV(d);
+				vectorAsm.Mov(r.N, r.I);
+				vectorAsm.Sub(r.N, this.P);
+				vectorAsm.Norm(r.N);
 
 				r.inside = false;
 			} else if (t1 > 0 && t1 < r.t) {
@@ -55,21 +55,21 @@ Sphere.prototype.intersect = function (r) {
 				r.i = this;
 
 				// r.I = mulf(r.D, t1).add(r.O);
-				vectorAsm.MulF(d, t1);
-				vectorAsm.Add(d, o);
-				r.I = VectorAsmGetV(d);
+				vectorAsm.Mov(r.I, r.D);
+				vectorAsm.MulF(r.I, t1);
+				vectorAsm.Add(r.I, r.O);
 
 				// r.N = sub(this.P, r.I).normalize();
-				vectorAsm.RSub(d, this.P); // <- reverse sub, store result in i.
-				vectorAsm.Norm(d);
-				r.N = VectorAsmGetV(d);
+				vectorAsm.Mov(r.N, r.I);
+				vectorAsm.RSub(r.N, this.P);// <- reverse sub, store result in r.N.
+				vectorAsm.Norm(r.N);
 
 				r.inside = true;
 			}
 		}
-		// We allocated 2 vectors, deallocate them again.
 	}
-	vectorAsm.PopCnt(3);
+	// vectorAsm.PopCnt(3);
+	vectorAsm.Pop();
 };
 
 Sphere.prototype.intersects = function (r) {

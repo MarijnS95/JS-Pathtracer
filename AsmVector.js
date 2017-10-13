@@ -38,6 +38,14 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		f32[pos + 8 >> 2] = z;
 	}
 
+	function VS(pos, f) {
+		// Writes a vector to a given position
+		pos = pos | 0;
+		f = fround(f);
+
+		V(pos, f, f, f);
+	}
+
 	function Mov(dest, src) {
 		dest = dest | 0;
 		src = src | 0;
@@ -81,7 +89,7 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		return AllocNext() | 0;
 	}
 
-	function PushV(pos) {
+	function Dup(pos) {
 		pos = pos | 0;
 
 		Mov(stackBase, pos);
@@ -287,27 +295,11 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		left = left | 0;
 		right = right | 0;
 
-		var lx = fround(0);
-		var ly = fround(0);
-		var lz = fround(0);
-
-		var rx = fround(0);
-		var ry = fround(0);
-		var rz = fround(0);
-
-		lx = fround(f32[left >> 2]);
-		ly = fround(f32[left + 4 >> 2]);
-		lz = fround(f32[left + 8 >> 2]);
-
-		rx = fround(f32[right >> 2]);
-		ry = fround(f32[right + 4 >> 2]);
-		rz = fround(f32[right + 8 >> 2]);
-
 		return fround(
 			fround(
-				fround(lx * rx) +
-				fround(ly * ry)
-			) + fround(lz * rz));
+				fround(f32[left >> 2] * f32[right >> 2]) +
+				fround(f32[left + 4 >> 2] * f32[right + 4 >> 2])
+			) + fround(f32[left + 8 >> 2] * f32[right + 8 >> 2]));
 	}
 
 	function Cross(dest, src) {
@@ -348,11 +340,12 @@ function VectorAsmModule(stdlib, foreign, heap) {
 	return {
 		init: init,
 		V: V,
+		VS: VS,
 		Mov: Mov,
 		Pop: Pop,
 		PopCnt: PopCnt,
 		Push: Push,
-		PushV: PushV,
+		Dup: Dup,
 		Add: Add,
 		AddF: AddF,
 		AddXYZ: AddXYZ,
@@ -388,7 +381,7 @@ function VectorAsmPushV(v) {
 	return vectorAsm.Push(v.x, v.y, v.z);
 }
 
-function VectorAsmWriteV(pos, v) {
+function VectorAsmMovV(pos, v) {
 	return vectorAsm.V(pos, v.x, v.y, v.z);
 }
 

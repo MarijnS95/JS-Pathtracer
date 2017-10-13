@@ -31,7 +31,15 @@ function Material(diffuse, specular = 0, refraction = 0) {
 };
 
 Material.prototype.tileStrength = function (r) {
-	const mask = mul(r.I, fsub(1, r.N)).mulf(16).addf(2000);
+	// const mask = mul(i, fsub(1, n)).mulf(16).addf(2000);
+	let mask = vectorAsm.Dup(r.N);
+	vectorAsm.FSub(mask, 1);
+	vectorAsm.Mul(mask, r.I);
+	vectorAsm.MulF(mask, 16);
+	vectorAsm.AddF(mask, 2000);
+	mask = VectorAsmGetV(mask);
+	vectorAsm.Pop();
+
 	const edge = (mask.x & 31) == 0 || (mask.y & 31) == 0 || (mask.z & 31) == 0;
 	return edge ? .05 : .4;
 };

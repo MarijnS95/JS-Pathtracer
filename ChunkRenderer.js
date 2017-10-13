@@ -27,10 +27,15 @@ function RayTrace(r) {
 		if (depth >= camera.maxDepth)
 			return V.single(0);
 		intersect(r);
+
+		const rD = VectorAsmGetV(r.D);
+
 		if (r.i == null) {
-			color.mul(SampleSkydome(r.D));
+			color.mul(SampleSkydome(rD));
 			break;
 		}
+
+		const rN = VectorAsmGetV(r.N);
 
 		const mtl = r.i.mtl;
 
@@ -55,7 +60,7 @@ function RayTrace(r) {
 			const n2 = r.inside ? 1 : mtl.refractionIndex;
 			const n = n1 / n2;
 
-			const cosI = -dot(r.N, r.D);
+			const cosI = -dot(rN, rD);
 			const sin2I = 1 - cosI * cosI;
 			const cos2T = 1 - n * n * sin2I;
 
@@ -65,20 +70,20 @@ function RayTrace(r) {
 			const Fr = f0 + (1 - f0) * Math.pow(1 - cosI, 5);
 			if (cos2T > 0 && Fr < xor32()) {
 				R = cosineHemFrame(
-					mulf(r.D, n).add(mulf(r.N, n * cosI - Math.sqrt(cos2T))),
+					mulf(rD, n).add(mulf(rN, n * cosI - Math.sqrt(cos2T))),
 					mtl.glossiness);
 				n1 = n2;
 			} else {
 				// IDEA: Here, it's possible for a diffuse or specular reflection to happen.
 				// TODO: mtl.glossiness should be randomized, because right now it would be sampling in that radius around the normal, not on the entire 'circle' determined by the glossiness.
-				R = cosineHemFrame(reflect(r.D, r.N), mtl.glossiness);
+				R = cosineHemFrame(reflect(rD, rN), mtl.glossiness);
 				color.mul(mtl.getSpecular(r));
 			}
 		} else if ((cmp += mtl.specular) > selector) {
-			R = cosineHemFrame(reflect(r.D, r.N), mtl.glossiness);
+			R = cosineHemFrame(reflect(rD, rN), mtl.glossiness);
 			color.mul(mtl.getSpecular(r));
 		} else if ((cmp += mtl.diffuse) > selector) {
-			R = cosineHemFrame(r.N, xor32());
+			R = cosineHemFrame(rN, xor32());
 			color.mul(mtl.getDiffuse(r));
 		} else {
 			color.set(0);
@@ -100,6 +105,7 @@ function renderChunk(x, y, stride) {
 			const base = 3 * (chunkBase + xc);
 			const r = camera.getRay(chunkX + xc, chunkY + yc);
 			const c = RayTrace(r);
+			r.pop();
 			accumulator[base] += c.x;
 			accumulator[base + 1] += c.y;
 			accumulator[base + 2] += c.z;
@@ -127,12 +133,12 @@ addEventListener('message', function (e) {
 					case 'Sphere':
 						obj = new Sphere(obj);
 						break;
-					case 'Plane':
-						obj = new Plane(obj);
-						break;
-					case 'Box':
-						obj = new Box(obj);
-						break;
+					// case 'Plane':
+					// 	obj = new Plane(obj);
+					// 	break;
+					// case 'Box':
+					// 	obj = new Box(obj);
+					// 	break;
 					default:
 						continue;
 				}
