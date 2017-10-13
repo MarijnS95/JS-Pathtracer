@@ -242,9 +242,9 @@ addEventListener('message', function (e) {
 					case 'Plane':
 						obj = new Plane(obj);
 						break;
-					// case 'Box':
-					// 	obj = new Box(obj);
-					// 	break;
+					case 'Box':
+						obj = new Box(obj);
+						break;
 					default:
 						continue;
 				}

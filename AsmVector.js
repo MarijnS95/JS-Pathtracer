@@ -134,6 +134,89 @@ function VectorAsmModule(stdlib, foreign, heap) {
 			fround(-f32[dest + 8 >> 2]));
 	}
 
+	function Sort(left, right) {
+		left = left | 0;
+		right = right | 0;
+
+		var lx = fround(0);
+		var ly = fround(0);
+		var lz = fround(0);
+
+		var rx = fround(0);
+		var ry = fround(0);
+		var rz = fround(0);
+
+		lx = fround(f32[left >> 2]);
+		ly = fround(f32[left + 4 >> 2]);
+		lz = fround(f32[left + 8 >> 2]);
+
+		rx = fround(f32[right >> 2]);
+		ry = fround(f32[right + 4 >> 2]);
+		rz = fround(f32[right + 8 >> 2]);
+
+		if (lx > rx) {
+			f32[left >> 2] = rx;
+			f32[right >> 2] = lx;
+		}
+
+		if (ly > ry) {
+			f32[left + 4 >> 2] = ry;
+			f32[right + 4 >> 2] = ly;
+		}
+
+		if (lz > rz) {
+			f32[left + 8 >> 2] = rz;
+			f32[right + 8 >> 2] = lz;
+		}
+	}
+
+	function MinIdx(pos) {
+		pos = pos | 0;
+
+		var x = fround(0);
+		var y = fround(0);
+		var z = fround(0);
+
+		x = fround(f32[pos >> 2]);
+		y = fround(f32[pos + 4 >> 2]);
+		z = fround(f32[pos + 8 >> 2]);
+
+		if (y < x)
+			return (y < z ? 1 : 2) | 0;
+		return (x < z ? 0 : 2) | 0;
+	}
+
+	function MaxIdx(pos) {
+		pos = pos | 0;
+
+		var x = fround(0);
+		var y = fround(0);
+		var z = fround(0);
+
+		x = fround(f32[pos >> 2]);
+		y = fround(f32[pos + 4 >> 2]);
+		z = fround(f32[pos + 8 >> 2]);
+
+		if (y > x)
+			return (y > z ? 1 : 2) | 0;
+		return (x > z ? 0 : 2) | 0;
+	}
+
+	function At(pos, i) {
+		pos = pos | 0;
+		i = i | 0;
+
+		return fround(f32[pos + (i << 2) >> 2]);
+	}
+
+	function SetAt(pos, i, v) {
+		pos = pos | 0;
+		i = i | 0;
+		v = fround(v);
+
+		f32[pos + (i << 2) >> 2] = v;
+	}
+
 	function Add(dest, src) {
 		dest = dest | 0;
 		src = src | 0;
@@ -505,6 +588,11 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		PushF: PushF,
 		Dup: Dup,
 		Neg: Neg,
+		Sort: Sort,
+		MinIdx: MinIdx,
+		MaxIdx: MaxIdx,
+		At: At,
+		SetAt: SetAt,
 		Add: Add,
 		AddF: AddF,
 		AddXYZ: AddXYZ,
