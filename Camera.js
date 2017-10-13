@@ -23,6 +23,7 @@ function Camera(o, d, fov = 90) {
 		this.update();
 		this.traceFocalDistance(ctx.canvas.width / 2, ctx.canvas.height / 2);
 		ctx.canvas.addEventListener('mousemove', this.mouseEvent.bind(this));
+		ctx.canvas.addEventListener('mousedown', this.mouseDown.bind(this));
 		ctx.canvas.addEventListener('mouseup', this.mouseEvent.bind(this));
 		ctx.canvas.addEventListener('mousedown', this.mouseEvent.bind(this));
 		ctx.canvas.addEventListener('mouseout', this.mouseEvent.bind(this));
@@ -86,6 +87,14 @@ Camera.prototype.keyEvent = function (e) {
 		this.update();
 };
 
+Camera.prototype.mouseDown = function (e) {
+	if (e.buttons & 4) {
+		this.traceFocalDistance(e.offsetX, e.offsetY, false);
+		this.update();
+		e.preventDefault();
+	}
+};
+
 Camera.prototype.mouseEvent = function (e) {
 	let changed = false;
 	if (e.buttons & 1) {
@@ -114,8 +123,12 @@ Camera.prototype.mouseEvent = function (e) {
 Camera.prototype.traceFocalDistance = function (x, y, update = true) {
 	const r = this.getRay(x, y);
 	intersect(r);
-	this.focalDistance = Math.min(100, dot(mulf(r.D, r.t), this.D));
-	if (isNaN(this.focalDistance))
+	vectorAsm.MulF(r.D, r.t)
+	this.focalDistance = Math.min(100,
+		vectorAsm.Dot(r.D, VectorAsmPushV(this.D)));
+	r.pop();
+	vectorAsm.Pop();
+	if (isNaN(this.focalDistance) || this.focalDistance <= 0)
 		this.focalDistance = 1;
 	console.log('Focal distance: ', this.focalDistance);
 	if (update)
