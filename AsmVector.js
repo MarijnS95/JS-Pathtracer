@@ -3,19 +3,24 @@ function VectorAsmModule(stdlib, foreign, heap) {
 
 	const fround = stdlib.Math.fround;
 	const sqrt = stdlib.Math.sqrt;
-	// const sin = stdlib.Math.sin;
-	// const cos = stdlib.Math.cos;
-	// const atan2 = stdlib.Math.atan2;
+	const sin = stdlib.Math.sin;
+	const cos = stdlib.Math.cos;
 	const exp = stdlib.Math.exp;
 	const imul = stdlib.Math.imul;
+	const abs = stdlib.Math.abs;
+	const PI = stdlib.Math.PI;
 
 	const f32 = new stdlib.Float32Array(heap);
 
 	const vectorSize = 12;
 	var stackBase = 0;
 	var heapSize = 0;
+
 	var vZero = 0;
 	var vOne = 0;
+	var PI_2 = fround(0);
+
+	var seed = 0;
 
 	function init(hs) {
 		hs = hs | 0;
@@ -24,6 +29,20 @@ function VectorAsmModule(stdlib, foreign, heap) {
 
 		vZero = Push(fround(0), fround(0), fround(0)) | 0;
 		vOne = Push(fround(1), fround(1), fround(1)) | 0;
+
+		PI_2 = fround(fround(PI) * fround(2));
+	}
+
+	function setSeed(s) {
+		s = s | 0;
+		seed = s >>> 0;
+	}
+
+	function xor32() {
+		seed = seed ^ seed << 13;
+		seed = seed ^ seed >> 17;
+		seed = seed ^ seed << 5;
+		return fround(fround(seed >>> 0) * fround(2.3283064365387e-10));
 	}
 
 	function V(pos, x, y, z) {
@@ -345,8 +364,127 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		NormF(dest, fround(1));
 	}
 
+	function Exp(dest) {
+		dest = dest | 0;
+
+		V(dest,
+			fround(exp(+f32[dest >> 2])),
+			fround(exp(+f32[dest + 4 >> 2])),
+			fround(exp(+f32[dest + 8 >> 2])));
+	}
+
+	function Abs(dest) {
+		dest = dest | 0;
+
+		V(dest,
+			fround(abs(fround(f32[dest >> 2]))),
+			fround(abs(fround(f32[dest + 4 >> 2]))),
+			fround(abs(fround(f32[dest + 8 >> 2]))));
+	}
+
+	function Reflect(dest, src) {
+		dest = dest | 0;
+		src = src | 0;
+
+		var d = fround(0);
+		var n = 0;
+
+		d = fround(fround(Dot(dest, src)) * fround(2));
+		n = Dup(src) | 0;
+		MulF(n, d);
+		Sub(dest, n);
+		Pop();
+	}
+
+	function FrameMul(dest, src) {
+		dest = dest | 0;
+		src = src | 0;
+
+		var xa = fround(0);
+		var ya = fround(0);
+		var za = fround(0);
+
+		var xt = fround(0);
+		var yt = fround(0);
+		var zt = fround(0);
+		var T = 0;
+		var B = 0;
+
+		xt = fround(f32[dest >> 2]);
+		yt = fround(f32[dest + 4 >> 2]);
+		zt = fround(f32[dest + 8 >> 2]);
+
+		xa = fround(abs(xt));
+		ya = fround(abs(yt));
+		za = fround(abs(zt));
+
+		if ((fround(xa) < fround(ya)) | 0 & (fround(xa) < fround(za)) | 0)
+			xt = fround(1);
+		else if ((fround(ya) < fround(xa)) | 0 & (fround(ya) < fround(za)) | 0)
+			yt = fround(1);
+		else
+			zt = fround(1);
+
+		T = Push(xt, yt, zt) | 0;
+
+		Cross(T, dest);
+		Norm(T);
+
+		B = Dup(T) | 0;
+		Cross(B, dest);
+
+		MulF(dest, fround(f32[src + 8 >> 2])); // N * v.z
+
+		MulF(T, fround(f32[src >> 2])); // T * v.x
+		Add(dest, T);
+
+		MulF(B, fround(f32[src + 4 >> 2])); // B * v.y
+		Add(dest, B);
+
+		PopCnt(2);
+	}
+
+	function CosineHemSample(dest, v) {
+		dest = dest | 0;
+		v = fround(v);
+
+		var phi = fround(0);
+		var sinTheta = fround(0);
+
+		if (v == fround(0)) {
+			V(dest,
+				fround(0),
+				fround(0),
+				fround(1));
+		} else {
+			v = fround(v * fround(xor32()));
+			phi = fround(PI_2 * fround(xor32()));
+			sinTheta = fround(sqrt(fround(v)));
+
+			V(dest,
+				fround(fround(cos(+phi)) * sinTheta),
+				fround(fround(sin(+phi)) * sinTheta),
+				fround(sqrt(fround(fround(1) - v))));
+		}
+	}
+
+	function CosineHemFrame(dest, v) {
+		dest = dest | 0;
+		v = fround(v);
+		var vec = 0;
+
+		if (v != fround(0)) {
+			vec = AllocNext() | 0;
+			CosineHemSample(vec, v);
+			FrameMul(dest, vec);
+			Pop();
+		}
+	}
+
 	return {
 		init: init,
+		setSeed: setSeed,
+		xor32: xor32,
 		V: V,
 		VS: VS,
 		Mov: Mov,
@@ -378,6 +516,12 @@ function VectorAsmModule(stdlib, foreign, heap) {
 		Cross: Cross,
 		NormF: NormF,
 		Norm: Norm,
+		Exp: Exp,
+		Abs: Abs,
+		Reflect: Reflect,
+		FrameMul: FrameMul,
+		CosineHemSample: CosineHemSample,
+		CosineHemFrame: CosineHemFrame
 	};
 }
 

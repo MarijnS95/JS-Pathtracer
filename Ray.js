@@ -20,13 +20,13 @@ function Ray(o, d) {
 
 Ray.prototype.nextRay = function (d) {
 	// this.O = mulf(d, EPSILON).add(this.I);
-	VectorAsmMovV(this.O, d);
+	vectorAsm.Mov(this.O, d);
 	vectorAsm.MulF(this.O, EPSILON);
 	vectorAsm.Add(this.O, this.I);
 	// this.D = d;
-	VectorAsmMovV(this.D, d);
+	vectorAsm.Mov(this.D, d);
 	// this.DI = fdiv(1, d);
-	vectorAsm.Mov(this.DI, this.D);
+	vectorAsm.Mov(this.DI, d);
 	vectorAsm.FDiv(this.DI, 1);
 	this.t = 1e34;
 	this.i = null;

@@ -94,7 +94,10 @@ function RayTrace(r, color) {
 		intersect(r);
 
 		if (r.i == null) {
-			SampleSkydome(color, r.D);
+			const sd = vectorAsm.AllocNext();
+			SampleSkydome(sd, r.D);
+			vectorAsm.Mul(color, sd);
+			vectorAsm.Pop();
 			break;
 		}
 
@@ -118,11 +121,12 @@ function RayTrace(r, color) {
 			break;
 		}
 
-		vectorAsm.V(color, 1, 0, 1);
-		break;
-
-		if (r.inside)
-			color.mul(exp(mulf(mtl.absorptionColor, -r.t)));
+		if (r.inside) {
+			// WARNING: color should not be written to yet, otherwise this needs to happen  in a local vector, and Mul'd with color.
+			VectorAsmMovV(color, mtl.absorptionColor);
+			vectorAsm.MulF(color, -r.t);
+			vectorAsm.Exp(color);
+		}
 
 		const selector = xor32();
 		let cmp = mtl.refraction;
@@ -135,7 +139,7 @@ function RayTrace(r, color) {
 			const n2 = r.inside ? 1 : mtl.refractionIndex;
 			const n = n1 / n2;
 
-			const cosI = -dot(rN, rD);
+			const cosI = -vectorAsm.Dot(r.N, r.D);
 			const sin2I = 1 - cosI * cosI;
 			const cos2T = 1 - n * n * sin2I;
 
@@ -144,27 +148,50 @@ function RayTrace(r, color) {
 			f0 *= f0;
 			const Fr = f0 + (1 - f0) * Math.pow(1 - cosI, 5);
 			if (cos2T > 0 && Fr < xor32()) {
-				R = cosineHemFrame(
-					mulf(rD, n).add(mulf(rN, n * cosI - Math.sqrt(cos2T))),
-					mtl.glossiness);
+				vectorAsm.Mov(R, r.N);
+				vectorAsm.MulF(R, n * cosI - Math.sqrt(cos2T));
+
+				const v = vectorAsm.Dup(r.D);
+				vectorAsm.MulF(v, n);
+				vectorAsm.Add(R, v);
+				vectorAsm.Pop();
+				vectorAsm.CosineHemFrame(R, mtl.glossiness);
+
+				// R = cosineHemFrame(
+				// 	mulf(rD, n).add(mulf(rN, n * cosI - Math.sqrt(cos2T))),
+				// 	mtl.glossiness);
 				n1 = n2;
 			} else {
 				// IDEA: Here, it's possible for a diffuse or specular reflection to happen.
 				// TODO: mtl.glossiness should be randomized, because right now it would be sampling in that radius around the normal, not on the entire 'circle' determined by the glossiness.
-				R = cosineHemFrame(reflect(rD, rN), mtl.glossiness);
-				color.mul(mtl.getSpecular(r));
+				// R = cosineHemFrame(reflect(rD, rN), mtl.glossiness);
+				// color.mul(mtl.getSpecular(r));
+				vectorAsm.Mov(R, r.D);
+				vectorAsm.Reflect(R, r.N);
+				vectorAsm.CosineHemFrame(R, mtl.glossiness);
+				vectorAsm.Mul(color, VectorAsmPushV(mtl.getSpecular(r)));
+				vectorAsm.Pop();
 			}
 		} else if ((cmp += mtl.specular) > selector) {
-			R = cosineHemFrame(reflect(rD, rN), mtl.glossiness);
-			color.mul(mtl.getSpecular(r));
+			vectorAsm.Mov(R, r.D);
+			vectorAsm.Reflect(R, r.N);
+			vectorAsm.CosineHemFrame(R, mtl.glossiness);
+			vectorAsm.Mul(color, VectorAsmPushV(mtl.getSpecular(r)));
+			vectorAsm.Pop();
 		} else if ((cmp += mtl.diffuse) > selector) {
-			R = cosineHemFrame(rN, xor32());
-			color.mul(mtl.getDiffuse(r));
+			// R = cosineHemFrame(rN, xor32());
+			vectorAsm.Mov(R, r.N);
+			vectorAsm.CosineHemFrame(R, xor32());
+
+			// color.mul(mtl.getDiffuse(r));
+			vectorAsm.Mul(color, VectorAsmPushV(mtl.getDiffuse(r)));
+			vectorAsm.Pop();
 		} else {
-			color.set(0);
+			vectorAsm.VS(color, 0);
 			break;
 		}
-		r.nextRay(R.normalize());
+		vectorAsm.Norm(R);
+		r.nextRay(R);
 	}
 	vectorAsm.Pop();
 }
@@ -178,8 +205,8 @@ function renderChunk(x, y, stride) {
 	for (let yc = 0; yc < chunkHeight; yc++) {
 		for (let xc = 0; xc < chunkWidth; xc++) {
 			const base = 3 * (chunkBase + xc);
+			const c = vectorAsm.PushF(1);
 			const r = camera.getRay(chunkX + xc, chunkY + yc);
-			const c = vectorAsm.PushF(0);
 			RayTrace(r, c);
 			r.pop();
 
@@ -199,6 +226,7 @@ addEventListener('message', function (e) {
 	switch (e.data.type) {
 		case 'startRender':
 			seed = (e.data.rnd + 1/*threadidx*/) * 124737421 | 0;
+			vectorAsm.setSeed(seed);
 			while ((chunkIdx = Atomics.add(syncPoint, 0, 1)) < e.data.totalWork) {
 				const x = (chunkIdx % e.data.xChunks) | 0,
 					y = (chunkIdx / e.data.xChunks) | 0;
