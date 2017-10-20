@@ -3,12 +3,12 @@ const world_up = new V(0, 1, 0);
 
 function Camera(o, d, fov = 90) {
 	if (d == null) {
-		this.O = V.copy(o.O);
-		this.topLeft = V.copy(o.topLeft);
-		this.right = V.copy(o.right);
-		this.down = V.copy(o.down);
-		this.topBottom = V.copy(o.topBottom);
-		this.leftRight = V.copy(o.leftRight);
+		this.O = VectorAsmPushV(o.O);
+		this.topLeft = VectorAsmPushV(o.topLeft);
+		this.right = VectorAsmPushV(o.right);
+		this.down = VectorAsmPushV(o.down);
+		this.topBottom = VectorAsmPushV(o.topBottom);
+		this.leftRight = VectorAsmPushV(o.leftRight);
 
 		this.lensSize = o.lensSize;
 		this.focalDistance = o.focalDistance;
@@ -17,6 +17,19 @@ function Camera(o, d, fov = 90) {
 		this.fov = Math.tan(fov * Math.PI / 360);
 		this.O = o;
 		this.D = d;
+		// this.topLeftVecVec = V.single(0);
+		// this.rightVecVec = V.single(0);
+		// this.downVecVec = V.single(0);
+		// this.topBottomVecVec = V.single(0);
+		// this.leftRightVecVec = V.single(0);
+		// this.O = VectorAsmPushV(this.OVec);
+		// this.D = VectorAsmPushV(this.DVec);
+		// this.topLeft = VectorAsmPushV(this.topLeftVec);
+		// this.right = VectorAsmPushV(this.rightVec);
+		// this.down = VectorAsmPushV(this.downVec);
+		// this.topBottom = VectorAsmPushV(this.topBottomVec);
+		// this.leftRight = VectorAsmPushV(this.leftRightVec);
+
 		this.maxDepth = realMaxDepth;
 		this.lensSize = 0.02;
 		this.focalDistance = 1;
@@ -40,9 +53,35 @@ Camera.prototype.getRay = function (x, y) {
 	y += xor32();
 	const lensx = xor32() - .5;
 	const lensy = xor32() - .5;
-	const lensPos = mulf(this.right, lensx).add(mulf(this.down, lensy)).mulf(this.lensSize);
-	const d = mulf(this.leftRight, x).add(mulf(this.topBottom, y)).add(this.topLeft).sub(lensPos);
-	const r = new Ray(lensPos.add(this.O), d.normalize());
+
+	if (!this.fov) {
+		o = vectorAsm.Dup(this.right);
+		vectorAsm.MulF(o, lensx);
+		d = vectorAsm.Dup(this.down);
+		vectorAsm.MulF(d, lensy);
+		vectorAsm.Add(o, d);
+		vectorAsm.MulF(o, this.lensSize);
+		vectorAsm.Mov(d, this.leftRight);
+		vectorAsm.MulF(d, x);
+		const tmp = vectorAsm.Dup(this.topBottom);
+		vectorAsm.MulF(tmp, y);
+		vectorAsm.Add(d, tmp);
+		vectorAsm.Mov(tmp, this.topLeft);
+		vectorAsm.Add(d, tmp);
+		vectorAsm.Sub(d, o);
+
+		vectorAsm.Add(o, this.O);
+
+		vectorAsm.Pop();
+	} else {
+		const lensPos = mulf(this.right, lensx).add(mulf(this.down, lensy)).mulf(this.lensSize);
+		const dd = mulf(this.leftRight, x).add(mulf(this.topBottom, y)).add(this.topLeft).sub(lensPos);
+
+		o = VectorAsmPushV(lensPos.add(this.O));
+		d = VectorAsmPushV(dd);
+	}
+	vectorAsm.Norm(d);
+	const r = new Ray(o, d);
 	return r;
 };
 

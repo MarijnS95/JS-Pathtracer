@@ -1,8 +1,6 @@
 function Ray(o, d) {
-	// this.O = o;
-	// this.D = d;
-	this.O = VectorAsmPushV(o);
-	this.D = VectorAsmPushV(d);
+	this.O = o;
+	this.D = d;
 
 	// this.DI = fdiv(1, d);
 	this.DI = vectorAsm.Dup(this.D);
