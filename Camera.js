@@ -49,10 +49,10 @@ function Camera(o, d, fov = 90) {
 };
 
 Camera.prototype.getRay = function (x, y) {
-	x += xor32();
-	y += xor32();
-	const lensx = xor32() - .5;
-	const lensy = xor32() - .5;
+	x += vectorAsm.xor32();
+	y += vectorAsm.xor32();
+	const lensx = vectorAsm.xor32() - .5;
+	const lensy = vectorAsm.xor32() - .5;
 
 	if (!this.fov) {
 		o = vectorAsm.Dup(this.right);

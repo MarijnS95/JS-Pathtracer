@@ -128,7 +128,7 @@ function RayTrace(r, color) {
 			vectorAsm.Exp(color);
 		}
 
-		const selector = xor32();
+		const selector = vectorAsm.xor32();
 		let cmp = mtl.refraction;
 		let R = null;
 
@@ -147,7 +147,7 @@ function RayTrace(r, color) {
 			let f0 = (n1 - n2) / (n1 + n2);
 			f0 *= f0;
 			const Fr = f0 + (1 - f0) * Math.pow(1 - cosI, 5);
-			if (cos2T > 0 && Fr < xor32()) {
+			if (cos2T > 0 && Fr < vectorAsm.xor32()) {
 				vectorAsm.Mov(R, r.N);
 				vectorAsm.MulF(R, n * cosI - Math.sqrt(cos2T));
 
@@ -156,16 +156,10 @@ function RayTrace(r, color) {
 				vectorAsm.Add(R, v);
 				vectorAsm.Pop();
 				vectorAsm.CosineHemFrame(R, mtl.glossiness);
-
-				// R = cosineHemFrame(
-				// 	mulf(rD, n).add(mulf(rN, n * cosI - Math.sqrt(cos2T))),
-				// 	mtl.glossiness);
 				n1 = n2;
 			} else {
 				// IDEA: Here, it's possible for a diffuse or specular reflection to happen.
 				// TODO: mtl.glossiness should be randomized, because right now it would be sampling in that radius around the normal, not on the entire 'circle' determined by the glossiness.
-				// R = cosineHemFrame(reflect(rD, rN), mtl.glossiness);
-				// color.mul(mtl.getSpecular(r));
 				vectorAsm.Mov(R, r.D);
 				vectorAsm.Reflect(R, r.N);
 				vectorAsm.CosineHemFrame(R, mtl.glossiness);
@@ -179,11 +173,9 @@ function RayTrace(r, color) {
 			vectorAsm.Mul(color, VectorAsmPushV(mtl.getSpecular(r)));
 			vectorAsm.Pop();
 		} else if ((cmp += mtl.diffuse) > selector) {
-			// R = cosineHemFrame(rN, xor32());
 			vectorAsm.Mov(R, r.N);
-			vectorAsm.CosineHemFrame(R, xor32());
+			vectorAsm.CosineHemFrame(R, vectorAsm.xor32());
 
-			// color.mul(mtl.getDiffuse(r));
 			vectorAsm.Mul(color, VectorAsmPushV(mtl.getDiffuse(r)));
 			vectorAsm.Pop();
 		} else {
