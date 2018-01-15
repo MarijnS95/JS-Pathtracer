@@ -119,7 +119,12 @@ addEventListener('load', function () {
 	loadSkydome();
 	let canvas = document.querySelector('canvas');
 	ctx = canvas.getContext('2d');
-	syncPoint = new Uint32Array(new SharedArrayBuffer(Uint32Array.BYTES_PER_ELEMENT * 2));
+	try {
+		syncPoint = new Uint32Array(new SharedArrayBuffer(Uint32Array.BYTES_PER_ELEMENT * 2));
+	} catch (e) {
+		console.error("Unable to create SharedArrayBuffer. Did you forget to turn on the flag at chrome://flags/#shared-array-buffer?");
+		throw e;
+	}
 
 	for (let obj of objects)
 		obj.type = obj.constructor.name;
