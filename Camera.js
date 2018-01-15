@@ -24,6 +24,8 @@ function Camera(o, d, fov = 90) {
 		this.traceFocalDistance(ctx.canvas.width / 2, ctx.canvas.height / 2);
 		ctx.canvas.addEventListener('mousemove', this.mouseEvent.bind(this));
 		ctx.canvas.addEventListener('mouseup', this.mouseEvent.bind(this));
+		ctx.canvas.addEventListener('mousedown', this.mouseEvent.bind(this));
+		ctx.canvas.addEventListener('mouseout', this.mouseEvent.bind(this));
 		window.addEventListener('contextmenu', (e) => {
 			e.preventDefault();
 		});
@@ -101,8 +103,9 @@ Camera.prototype.mouseEvent = function (e) {
 		changed = true;
 	}
 
-	this.maxDepth = changed && e.type != 'mouseup' ? 1 : realMaxDepth;
-	if (changed || e.type == 'mouseup') {
+	const mouseAway = e.type == 'mouseup' || e.type == 'mouseout' || e.buttons & 4;
+	if (changed || mouseAway) {
+		this.maxDepth = !mouseAway ? 1 : realMaxDepth;
 		this.update();
 		e.preventDefault();
 	}
