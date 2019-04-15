@@ -148,6 +148,7 @@ addEventListener('load', function () {
 		shouldInitializeStorage = true;
 		camera.update();
 	};
+	setIsRendering(true);
 });
 
 function setIsRendering(value) {

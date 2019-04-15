@@ -50,7 +50,7 @@ function RayTrace(r) {
 		if (cmp > selector) {
 			// In case the camera is already inside an object (because the above n1 = 1 assumes the camera is in air):
 			if (r.inside && depth == 0)
-				n1 = mat.refractionIndex;
+				n1 = mtl.refractionIndex;
 			const n2 = r.inside ? 1 : mtl.refractionIndex;
 			const n = n1 / n2;
 

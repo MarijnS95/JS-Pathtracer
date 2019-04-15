@@ -20,12 +20,14 @@ function Camera(o, d, fov = 90) {
 		this.maxDepth = realMaxDepth;
 		this.lensSize = 0.02;
 		this.focalDistance = 1;
+		this.isDragging = false;
 		this.update();
 		this.traceFocalDistance(ctx.canvas.width / 2, ctx.canvas.height / 2);
 		ctx.canvas.addEventListener('mousemove', this.mouseEvent.bind(this));
 		ctx.canvas.addEventListener('mouseup', this.mouseEvent.bind(this));
 		ctx.canvas.addEventListener('mousedown', this.mouseEvent.bind(this));
 		ctx.canvas.addEventListener('mouseout', this.mouseEvent.bind(this));
+		ctx.canvas.addEventListener('mousewheel', this.mouseWheel.bind(this));
 		window.addEventListener('contextmenu', (e) => {
 			e.preventDefault();
 		});
@@ -88,27 +90,49 @@ Camera.prototype.keyEvent = function (e) {
 
 Camera.prototype.mouseEvent = function (e) {
 	let changed = false;
-	if (e.buttons & 1) {
-		this.D.sub(mulf(this.right, e.movementX * 0.001)).add(mulf(world_up, e.movementY * 0.005)).normalize();
+	let startedDragging = false;
+
+	if (e.buttons & 1 && (e.movementX || e.movementY)) {
+		this.O.sub(mulf(this.right, e.movementX / ctx.canvas.width * 8))
+			.sub(mulf(this.down, e.movementY / ctx.canvas.height * 8));
+		startedDragging = true;
 		changed = true;
 	}
 
-	if (e.buttons & 2) {
-		this.O.sub(mulf(this.right, e.movementX * 0.04)).sub(mulf(this.down, e.movementY * 0.04));
+	if (e.buttons & 2 && (e.movementX || e.movementY)) {
+		this.D.sub(mulf(this.right, e.movementX / ctx.canvas.width * 2))
+			.add(mulf(world_up, e.movementY / ctx.canvas.height * 2))
+			.normalize();
+		startedDragging = true;
 		changed = true;
 	}
 
-	if (e.buttons & 4) {
+	if (e.buttons & 4 && e.type == 'mousedown') {
 		this.traceFocalDistance(e.offsetX, e.offsetY, false);
 		changed = true;
 	}
 
-	const mouseAway = e.type == 'mouseup' || e.type == 'mouseout' || e.buttons & 4;
-	if (changed || mouseAway) {
-		this.maxDepth = !mouseAway ? 1 : realMaxDepth;
+	const mouseAway = e.type == 'mouseup' || e.type == 'mouseout';
+	if (mouseAway && this.isDragging) {
+		this.isDragging = false;
+		changed = true;
+		this.maxDepth = realMaxDepth;
+	} else if (startedDragging) {
+		this.isDragging = true;
+		changed = true;
+		this.maxDepth = 1;
+	}
+
+	if (changed) {
 		this.update();
 		e.preventDefault();
 	}
+}
+
+Camera.prototype.mouseWheel = function (e) {
+	this.O.add(mulf(this.D, e.deltaY / -53));
+	this.update();
+	e.preventDefault();
 }
 
 Camera.prototype.traceFocalDistance = function (x, y, update = true) {
